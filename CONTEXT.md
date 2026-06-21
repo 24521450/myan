@@ -107,18 +107,33 @@ _Avoid_: Bold word, headword mark
 ### Card content rules
 
 **Card Identity**:
-A card is uniquely identified by the pair `(Word, CEFRLevel)`. **Exactly one card per `(Word, CEFRLevel)` pair** — no more, no less. Same word with different CEFR levels produces multiple cards (e.g. `tackle` at B2 and `tackle` at C1 are two distinct cards). Multi-POS words (e.g. `absent` = adjective/verb/preposition) live in a single card per CEFR, with all POS chips listed in the top-bar — never one card per POS. Identity is enforced at the build stage.
-_Avoid_: Card key, card ID
+A card is uniquely identified by the triple `(Word, CEFRLevel, LIST)`. **Exactly one card per `(Word, CEFRLevel, LIST)` triple** — no more, no less. `LIST` is the primary corpus/list bucket derived from the card's tags via a fixed priority:
+
+```text
+Oxford_5000 > Oxford_3000 > AWL > NO_LIST
+```
+
+A card carries the highest-priority tag it owns (e.g. a card tagged both `Oxford_5000` and `AWL` resolves to `Oxford_5000`); cards with none of the three list tags resolve to `NO_LIST`. Identity is enforced at the build stage and re-verified by the P3B verifier.
+
+Implications:
+- Same word at the same CEFR on different lists produces multiple cards. Example: `firm|noun|B2` lives on `Oxford_3000` and `firm|adjective|B2` lives on `Oxford_5000` — they are two distinct cards even though they share `(firm, B2)`.
+- Same word with different CEFR levels still produces multiple cards (e.g. `tackle` at B2 and `tackle` at C1 are two distinct cards).
+- Multi-POS words (e.g. `absent` = adjective/verb/preposition, `yield` = noun/verb) live in a single card per `(CEFR, LIST)`, with all POS chips listed in the top-bar — never one card per POS.
+- `NO_LIST` is a valid identity bucket for cards with no corpus list tag (e.g. Oxford proper nouns not on any curated list). The identity rule applies uniformly.
+- The legacy `(Word, CEFR)` only rule was retired 2026-06-21 because it incorrectly forced merges across genuine list boundaries (e.g. it would have collapsed `firm|adjective|B2|Oxford_5000` into `firm|noun|B2|Oxford_3000` even though they are distinct vocabulary entries from different curricula).
+_Avoid_: Card key, card ID, `(word, CEFR)` only (legacy)
 
 **Sense Sorting**:
-All CEFR-matching definitions per **card** (per `(Word, CEFRLevel)` unit) are retained — there is **no per-card def limit**. (The legacy "Sense Cap" of ≤3 defs/card was removed on 2026-06-21 after audit feedback showed high-frequency words were losing critical senses.) Senses are **logically ordered**: first by Oxford's `sensenum_local` (ascending — Oxford's own frequency proxy, lower number = more common), then by example count (descending) as tie-breaker. Idiom defs (sensenum_local=None) sort last. Scraped records keep all senses; sorting is applied only at build.
+All CEFR-matching definitions per **card** (per `(Word, CEFRLevel, LIST)` unit) are retained — there is **no per-card def limit**. (The legacy "Sense Cap" of ≤3 defs/card was removed on 2026-06-21 after audit feedback showed high-frequency words were losing critical senses.) Senses are **logically ordered**: first by Oxford's `sensenum_local` (ascending — Oxford's own frequency proxy, lower number = more common), then by example count (descending) as tie-breaker. Idiom defs (sensenum_local=None) sort last. Scraped records keep all senses; sorting is applied only at build.
 
 **Worked example — `tackle`:**
 - Oxford has 5 senses: 1 at B2 ("to make a determined effort to deal with...") and 4 at C1 (verb + noun).
 - Build stage produces **2 cards** (not 5, not 6):
-  - `(tackle, B2)` card: 1 sense (the B2 sense)
-  - `(tackle, C1)` card: 4 senses, ordered by sensenum_local asc — all 4 C1 senses are kept, none dropped
-- Anti-pattern: 1 card per sense, 1 card per (sense, POS), or N>1 cards for the same (word, CEFR) — all violate Card Identity. Sense Sorting does not paginate.
+  - `(tackle, B2, Oxford_5000)` card: 1 sense (the B2 sense)
+  - `(tackle, C1, Oxford_5000)` card: 4 senses, ordered by sensenum_local asc — all 4 C1 senses are kept, none dropped
+- **Worked example — `firm` (list-aware split)**: the word has 2 distinct cards on different lists at the same CEFR — `(firm, B2, Oxford_5000)` for the adjective sense ("solid|unlikely to change") and `(firm, B2, Oxford_3000)` for the noun sense ("a business or company"). Same `(firm, B2)` is now allowed because the LIST differs.
+- **Worked example — `yield` (multi-POS merge)**: a single card `(yield, C1, Oxford_5000)` carries both noun ("output | produce") and verb ("surrender") senses in one row with all POS chips listed in the top-bar — never one card per POS.
+- Anti-pattern: 1 card per sense, 1 card per (sense, POS), or N>1 cards for the same `(word, CEFR, LIST)` — all violate Card Identity. Sense Sorting does not paginate.
 _Avoid_: Sense Cap (legacy name), Definition limit, max senses, "pagination" (the term itself suggests splitting into multiple cards, which is wrong here)
 
 **CEFR Sense-Level Assignment Rule**:
