@@ -138,12 +138,12 @@ def main() -> int:
 
     # Audit count must NOT change (P5 only mutates content, not row count).
     if len(audit) != 2487:
-        failures.append(f'audit has {len(audit)} rows (expected 2487 — count must not change)')
+        failures.append(f'audit has {len(audit)} rows (expected 2487 -- count must not change)')
     if len(jsonl) != 2450:
-        failures.append(f'JSONL has {len(jsonl)} rows (expected 2450 — count must not change)')
+        failures.append(f'JSONL has {len(jsonl)} rows (expected 2450 -- count must not change)')
 
     # Build audit index by 4-element pre-repair guard (excludes rule_applied
-    # and gloss_after — both changed post-apply).
+    # and gloss_after -- both changed post-apply).
     audit_by_pre_repair: dict[tuple, list[dict]] = {}
     for r in audit:
         g = _audit_pre_repair_guard(r)
@@ -178,19 +178,19 @@ def main() -> int:
         if audit_row['gloss_after'] != new_gloss:
             failures.append(
                 f'  ({word}, {pos}, {cefr}) audit gloss_after={audit_row["gloss_after"]!r} '
-                f'≠ ledger new_gloss={new_gloss!r}'
+                f'!= ledger new_gloss={new_gloss!r}'
             )
             continue
         if audit_row.get('rule_applied', '').strip() != rule_after:
             failures.append(
                 f'  ({word}, {pos}, {cefr}) audit rule_applied={audit_row.get("rule_applied")!r} '
-                f'≠ ledger rule_after={rule_after!r}'
+                f'!= ledger rule_after={rule_after!r}'
             )
             continue
         if audit_row.get('fix_status', '').strip() != 'p5_precision_phrase_repaired':
             failures.append(
                 f'  ({word}, {pos}, {cefr}) audit fix_status={audit_row.get("fix_status")!r} '
-                f'≠ expected p5_precision_phrase_repaired'
+                f'!= expected p5_precision_phrase_repaired'
             )
             continue
         # Verify gate_status=pass and word_count
@@ -217,14 +217,14 @@ def main() -> int:
         if txt_row is None:
             n_txt_deferred += 1
             print(
-                f'  DEFERRED: {rec["word"]}|{rec["pos"]}|{rec["cefr"]} — '
+                f'  DEFERRED: {rec["word"]}|{rec["pos"]}|{rec["cefr"]} -- '
                 f'no matching TXT row, JSONL reconciliation pending a future fix'
             )
             continue
         if txt_row['def'] != rec['new_gloss']:
             failures.append(
                 f'  ({rec["word"]}, {rec["pos"]}, {rec["cefr"]}) TXT def={txt_row["def"]!r} '
-                f'≠ ledger new_gloss={rec["new_gloss"]!r}'
+                f'!= ledger new_gloss={rec["new_gloss"]!r}'
             )
             continue
         n_txt_synced += 1
@@ -246,7 +246,7 @@ def main() -> int:
         if jsonl_row['definition'] != rec['new_gloss']:
             failures.append(
                 f'  ({rec["word"]}, {rec["pos"]}, {rec["cefr"]}) JSONL definition={jsonl_row["definition"]!r} '
-                f'≠ ledger new_gloss={rec["new_gloss"]!r}'
+                f'!= ledger new_gloss={rec["new_gloss"]!r}'
             )
             continue
         n_jsonl_synced += 1
@@ -261,7 +261,7 @@ def main() -> int:
             f'(expected "help resolve a dispute")'
         )
     elif mediate_txt:
-        print('  ✓ mediate|verb|C2 TXT = "help resolve a dispute"')
+        print('  [OK] mediate|verb|C2 TXT = "help resolve a dispute"')
 
     solo_audit_g = (
         'solo', 'noun', 'C1',
@@ -281,7 +281,7 @@ def main() -> int:
             f'(expected "single-performer music")'
         )
     else:
-        print('  ✓ solo|noun|C1 audit = "single-performer music"')
+        print('  [OK] solo|noun|C1 audit = "single-performer music"')
 
     # 7. Regression: P3B / P4A / P4B / P4C verifiers still PASS
     print('\n[7] Regression checks (P3B / P4A / P4B / P4C)...')
@@ -315,14 +315,14 @@ def main() -> int:
     print()
     if failures:
         print('=' * 72)
-        print('FAIL — P5 verification has errors:')
+        print('FAIL -- P5 verification has errors:')
         for f in failures:
             print(f)
         print('=' * 72)
         return 1
     print('=' * 72)
     print(
-        f'PASS — P5 precision phrase verified: {n_repair_synced} repair synced, '
+        f'PASS -- P5 precision phrase verified: {n_repair_synced} repair synced, '
         f'{n_txt_synced} TXT synced, {n_jsonl_synced} JSONL synced, '
         f'{n_review} review_candidate recorded.'
     )
