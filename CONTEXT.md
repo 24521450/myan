@@ -236,13 +236,54 @@ A `Gloss Verdict` must have a separator/chunk shape consistent with its `rule_ap
 
 | `rule_applied` | Required shape |
 |---|---|
-| `rule_b_pick1`, `concrete_1sense`, `multi_pos_pick1` | one chunk allowed (no separator) |
+| `rule_b_pick1`, `concrete_1sense`, `multi_pos_pick1`, `precision_phrase` | one chunk allowed (no separator) |
 | `2sense_distinct`, `3sense_distinct`, `rule_b_pick2`, `rule_b_pick2_addendum`, `multi_pos_pick2` | **must have more than one chunk** (`|` or `;`) |
 | `2sense_samedomain` | one chunk allowed when Rule A collapses near-synonyms; otherwise `;` or `|` may be justified by review |
 | `pos_aware_gloss` | policy review (one chunk may be intentional, see P4B addendum) |
 
 A `rule_b_pick2` verdict with a single-chunk gloss is a **rule-shape contradiction** — the rule says "pick 2" but the gloss has only 1. Caught and fixed by P4B (`tools/_apply_p4b_rule_shape_fix.py`). The reverse — many `def_before` segments collapsing to one gloss — is **not** automatically a bug: Rule A allows near-synonym collapse, Rule B allows same-concept collapse, Rule C forces retention. Use `tools/_audit_gloss_policy_coverage.py` to classify rows into `allowed_single_gloss` / `rule_shape_contradiction` / `policy_review` / `metadata_error` buckets.
 _Avoid_: rule-shape mismatch, "1-chunk with multi-def def_before is a bug" (it isn't always — see Rule A/B/C).
+
+**Precision Phrase**:
+A single-chunk gloss that uses 2-6 words (a phrase) instead of a single-word synonym, because the single-word synonym would shift into a nearby contrast word or narrow the headword's semantic type. The phrase captures the headword's meaning more precisely while staying learner-friendly.
+
+When to use:
+- The one-word synonym shifts into a nearby **contrast pair**: `mediate → arbitrate` (mediator helps parties; arbitrator decides) — use `help resolve a dispute`.
+- The one-word synonym **narrows the semantic type**: `solo (noun) → recital` (recital is a performance event; `solo` covers composition, passage, OR performance by one person) — use `single-performer music`.
+- A single-word gloss would be a **near-synonym** that learners might confuse with the headword or with a related concept.
+
+When NOT to use:
+- The single-word synonym is a true synonym (Rule A collapse is correct).
+- The def_before is a single concrete sense with no type-narrowing risk.
+- The headword is C1+ academic vocabulary where learners benefit from the compact single-word form.
+
+`precision_phrase` is a first-class rule code in `VALID_RULE_CODES`. The audit policy tool classifies it as `allowed_single_gloss` (one-chunk allowed). The Precision Phrase Ledger (`data/gloss_precision_phrase_p5.jsonl` for the P5 pass) records the human review decision for each candidate.
+
+Schema:
+```json
+{
+  "word": "mediate", "pos": "verb", "cefr": "C2",
+  "rule_applied": "concrete_1sense",   // current rule BEFORE P5 review
+  "def_before": "to try to end a situation between two or more people...",
+  "old_gloss": "arbitrate",
+  "candidate_gloss": "help resolve a dispute",   // proposed (or current if keep)
+  "decision": "repair_gloss" | "review_candidate" | "keep_current",
+  "new_gloss": "help resolve a dispute",         // required iff repair_gloss; null otherwise
+  "rule_after": "precision_phrase",              // rule to write post-repair; null otherwise
+  "separator": "none",                           // derived from new_gloss for repair
+  "gloss_word_count": 4,                         // computed
+  "reason": "mediator helps parties reach agreement; arbitrator decides the dispute",
+  "risk_type": "contrast_pair" | "type_narrowing" | "overgeneralized_synonym" | "domain_loss" | "multi_pos_loss",
+  "p5_version": "2026-06-21"
+}
+```
+
+Decisions:
+- `repair_gloss` — clear semantic loss with a 2-6 word phrase that captures the headword's meaning precisely. Updates audit row's `gloss_after`, `rule_applied`, `separator`, `gloss_word_count`, `gate_status`, `fix_status`; updates TXT def cell; triggers `tools/build_notes.py` to regenerate JSONL.
+- `review_candidate` — heuristic candidate flagged for future human review. No audit change.
+- `keep_current` — single-word gloss reviewed and confirmed as adequate (Rule A synonym collapse legit, no precision loss). No audit change. Recorded so re-scans don't keep flagging it.
+
+_Avoid_: silently replacing single-word glosses with phrases (Rule A synonyms are legit); widening glosses to phrases that exceed 6 words.
 
 **Policy Review Ledger**:
 A separate JSONL file (`data/gloss_policy_review_p4c.jsonl` for the P4C pass, future passes use the same convention) that records the **human review decision** for every `policy_review` row. The ledger is the source of truth for which `policy_review` rows have been triaged; the audit master row stays as-is and gains nothing from the review.

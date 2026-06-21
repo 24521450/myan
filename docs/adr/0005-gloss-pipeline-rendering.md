@@ -472,3 +472,115 @@ This is a process change (separate ledger) and a terminology addition
 extended, not replaced. The ledger separation is the right separation
 of concerns (production data vs review state) but doesn't change the
 gloss-pipeline architecture.
+
+---
+
+## Addendum 2026-06-21 (P5) — Precision Phrase: when a single-word synonym is wrong
+
+### The problem P5 closes
+
+The gloss pipeline permits single-word glosses via Rule A (collapse
+near-synonyms) and the `concrete_1sense` / `multi_pos_pick1` /
+`rule_b_pick1` rules. This works when the one-word gloss is a true
+synonym. It **breaks** when the one-word gloss is a *near-synonym*
+that shifts into a different semantic neighborhood.
+
+Two seed examples from P5:
+
+**`mediate → arbitrate`** (verb, C2)
+- Def: "to try to end a situation between two or more people or groups
+  who disagree by talking to them and trying to find things that
+  everyone can agree on | to succeed in finding a solution to a
+  problem between people or groups who disagree"
+- Old gloss: `arbitrate` (one word, "concrete_1sense" rule, gate=pass)
+- Risk: `mediate` and `arbitrate` are a **contrast pair**. A mediator
+  helps parties reach agreement; an arbitrator *decides* the dispute.
+  Using `arbitrate` as the gloss for `mediate` is a definition error —
+  learners who memorize "mediate = arbitrate" will use them
+  interchangeably, which is wrong.
+- New gloss: `help resolve a dispute` (4 words, phrase form).
+- Risk type: `contrast_pair`.
+
+**`solo (noun) → recital`** (C1)
+- Def: "a musical composition, or a passage, for a single voice or
+  instrument; a performance by one person alone"
+- Old gloss: `recital` (one word, "POS_DEF_MISMATCH_fixed" rule)
+- Risk: `recital` narrows the sense to a *performance event*. The
+  Oxford def covers composition, passage, OR performance by one
+  person. A composition or passage is not a recital.
+- New gloss: `single-performer music` (2 words, phrase form).
+- Risk type: `type_narrowing`.
+
+Both rows passed the gate because `validate_verdict` only checks
+shape (separator/count/word-count/headword-leak), not semantic
+correctness. The audit policy tool classifies them as
+`allowed_single_gloss` — also correct under the existing rules.
+P5 closes this gap by adding a `precision_phrase` rule code and a
+review ledger.
+
+### The new `precision_phrase` rule
+
+`precision_phrase` joins the `VALID_RULE_CODES` tuple as a
+first-class rule. It denotes a single-chunk gloss that uses 2-6 words
+(phrase form) because the single-word synonym would shift into a
+nearby contrast word or narrow the headword's semantic type.
+
+`tools/_audit_gloss_policy_coverage.py` adds `precision_phrase` to
+`SINGLE_ALLOWED` — one-chunk is the structural expectation, no
+separator, no contradiction.
+
+### The Precision Phrase Ledger
+
+`data/gloss_precision_phrase_p5.jsonl` is a separate JSONL file
+following the P4C Policy Review Ledger convention. Each row records
+either:
+
+- `repair_gloss` — clear semantic loss with a 2-6 word phrase that
+  captures the headword precisely. Updates audit row's `gloss_after`,
+  `rule_applied` (set to `precision_phrase`), `separator`, and
+  `gloss_word_count`; updates TXT def cell; triggers `build_notes`
+  JSONL regen. Risk-type tag explains why the one-word synonym
+  failed (`contrast_pair`, `type_narrowing`, `overgeneralized_synonym`,
+  `domain_loss`, `multi_pos_loss`).
+- `review_candidate` — heuristic candidate flagged for future human
+  review (no audit change). Keeps the candidate visible across scans.
+- `keep_current` — single-word gloss reviewed and confirmed as
+  adequate (Rule A synonym collapse legit, no precision loss). No
+  audit change. Recorded so re-scans don't keep flagging it.
+
+The audit master (`data/audit_full_deck_v2.jsonl`) stays as the
+production source of truth. Review decisions live in the ledger; the
+audit row gains nothing except the post-repair `rule_applied=precision_phrase`
+and `fix_status=p5_precision_phrase_repaired` metadata.
+
+### P5 scope discipline
+
+A naive audit scan flags ~989 single-word glosses at advanced CEFR
+(B2/C1/C2/UNCLASSIFIED) as "potential precision-phrase candidates."
+P5 deliberately does **not** auto-fix them. Single-word synonyms are
+legit when:
+
+- The def_before is one concrete sense with no type-narrowing risk
+  (most `concrete_1sense` rows).
+- The single word is a true synonym (Rule A collapse is correct).
+- The headword is C1+ academic vocabulary where learners benefit from
+  the compact single-word form.
+
+P5's first deliverable is a ledger with the **2 confirmed seed
+repairs** plus a `review_candidate` list of heuristic discoveries
+populated from the full-audit scan. Future passes (P5b, P5c, ...)
+triage the review-candidate list one decision at a time. Aggressive
+auto-fix is rejected because Rule A collapse is legitimate for most
+single-word glosses — the precision-phrase case is the exception,
+not the rule.
+
+### Why no new ADR
+
+`precision_phrase` extends the existing rule-code vocabulary
+(`VALID_RULE_CODES`) rather than replacing the gloss-pipeline
+architecture. The Precision Phrase Ledger mirrors the P4C Policy
+Review Ledger pattern (separate JSONL, separate apply/verify tools).
+The 2-6 word phrase form is already supported by the gate (word
+count range covers 1-6). The only architectural change is adding the
+rule code and a new ledger — a process addition, not a structural
+change.

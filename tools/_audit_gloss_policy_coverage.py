@@ -46,6 +46,7 @@ SINGLE_ALLOWED = {
     'rule_b_pick1',
     'concrete_1sense',
     'multi_pos_pick1',
+    'precision_phrase',  # P5: 2-6 word phrase form, single chunk by design
 }
 # Rules where one-chunk is policy-review (needs M3/human check).
 # Both `pos_aware_gloss` and `2sense_samedomain` may legitimately collapse

@@ -106,6 +106,8 @@ VALID_RULE_CODES = (
     'concrete_1sense',           # 1 sense, no special rule
     'multi_pos_pick1',           # multi-POS, all variants → 1 word
     'safety_net',                # 1 sense, domain-restricted, kept per Rule C
+    'precision_phrase',          # single-word gloss would shift semantic type
+                                 # (e.g. contrast_pair, type_narrowing) → 2-6 word phrase
 )
 
 
