@@ -352,11 +352,16 @@ class TestCrossCutInvariants:
 
     def test_audit_unchanged_for_keepsingle_post_apply(self):
         """Post-apply, every keep_single ledger row's audit row has the
-        same `gloss_after` as the ledger's `old_gloss`."""
+        same `gloss_after` as the ledger's `old_gloss` — UNLESS the row
+        was later superseded by P5/P5B (drift tolerated via fix_status).
+
+        After P5B manual review pass: 30 keep_single rows were superseded
+        by P5/P5B repair_gloss verdicts. Their audit gloss_after changed,
+        but `fix_status` is `p5b_manual_review_repaired` (or p5_*), so
+        the drift is intentional, not a regression.
+        """
         ledger = _load_ledger()
         audit = _verify_load_audit()
-        # Index audit by full 6-element guard for keep rows (audit still
-        # has the OLD gloss for keep rows since apply didn't change them).
         audit_by_full_guard: dict[tuple, dict] = {}
         for r in audit:
             g = (
@@ -368,6 +373,19 @@ class TestCrossCutInvariants:
                 (r.get('gloss_after') or '').strip(),
             )
             audit_by_full_guard[g] = r
+        # Audit by (word, pos, cefr) for drift-tolerance lookup.
+        audit_by_key: dict[tuple, dict] = {}
+        for r in audit:
+            k = (
+                r['word'].strip().lower(),
+                r['pos'].strip().lower(),
+                r['cefr'].strip().upper(),
+            )
+            audit_by_key.setdefault(k, []).append(r)
+        drift_superseded_keys = {
+            'p5_precision_phrase_repaired',
+            'p5b_manual_review_repaired',
+        }
         for rec in ledger:
             if rec.get('decision') != 'keep_single':
                 continue
@@ -379,11 +397,21 @@ class TestCrossCutInvariants:
                 (rec.get('def_before') or '').strip(),
                 (rec.get('old_gloss') or '').strip(),
             )
-            assert g in audit_by_full_guard, (
-                f'keep_single ledger row {g!r} not found in audit'
+            if g in audit_by_full_guard:
+                # Exact match: audit still has old_gloss, no drift.
+                continue
+            # No exact match: check if a P5/P5B repair verdict
+            # superseded this keep_single. Tolerated.
+            k = (
+                rec['word'].strip().lower(),
+                rec['pos'].strip().lower(),
+                rec['cefr'].strip().upper(),
             )
-            audit_row = audit_by_full_guard[g]
-            assert audit_row['gloss_after'] == rec['old_gloss'], (
-                f'keep_single audit drift: {g!r} audit={audit_row["gloss_after"]!r} '
-                f'vs ledger old_gloss={rec["old_gloss"]!r}'
+            candidates = audit_by_key.get(k, [])
+            assert candidates, f'keep_single row {g!r} missing from audit entirely'
+            audit_row = candidates[0]
+            fix_status = (audit_row.get('fix_status') or '').strip()
+            assert fix_status in drift_superseded_keys, (
+                f'keep_single audit drift without P5/P5B supersede: '
+                f'{g!r} fix_status={fix_status!r}'
             )

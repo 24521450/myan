@@ -171,6 +171,42 @@ def main() -> int:
                 rec.get('def_before', ''),
             )
             rows = audit_by_pre_repair_guard.get(g, [])
+        # Drift tolerance: if the keep_single row's audit entry has been
+        # mutated by P5 / P5B (fix_status in {p5_*, p5b_*}), the audit
+        # guard won't match exactly because gloss_after AND rule_applied
+        # changed. The P5 / P5B later verdict supersedes P4C's
+        # keep_single. We search audit by (word, pos, cefr) + fix_status
+        # membership and tolerate the drift instead of failing.
+        if not rows and decision == 'keep_single':
+            wpos = (
+                rec.get('word', '').strip().lower(),
+                rec.get('pos', '').strip().lower(),
+                rec.get('cefr', '').strip().upper(),
+            )
+            candidates: list[dict] = []
+            for v in audit_by_full_guard.values():
+                for r in v:
+                    if (
+                        (r.get('word') or '').strip().lower() == wpos[0]
+                        and (r.get('pos') or '').strip().lower() == wpos[1]
+                        and (r.get('cefr') or '').strip().upper() == wpos[2]
+                    ):
+                        candidates.append(r)
+            if len(candidates) == 1:
+                r_drift = candidates[0]
+                fix_status = (r_drift.get('fix_status') or '').strip()
+                if fix_status in (
+                    'p5_precision_phrase_repaired',
+                    'p5b_manual_review_repaired',
+                ):
+                    # Drift tolerated: P5/P5B verdict superseded P4C keep_single.
+                    matched_keep.append((rec, r_drift))
+                    print(
+                        f'  DRIFT: ({rec.get("word")}, {rec.get("pos")}, '
+                        f'{rec.get("cefr")}) P4C keep_single superseded by '
+                        f'{fix_status} (gloss_after={r_drift["gloss_after"]!r})'
+                    )
+                    continue
         if len(rows) == 0:
             unmatched.append(rec)
             failures.append(
@@ -275,21 +311,33 @@ def main() -> int:
         n_repair_synced += 1
     print(f'  repair_gloss synced: {n_repair_synced}/{n_repair}')
 
-    # 5. Each keep_single: audit row unchanged
+    # 5. Each keep_single: audit row unchanged (or superseded by P5/P5B drift)
     print('\n[5] Each keep_single audit row unchanged from old_gloss...')
     n_keep_unchanged = 0
+    n_keep_drift = 0
     for rec, r in matched_keep:
         word = rec['word']
         pos = rec['pos']
         cefr = rec['cefr']
         old_gloss = rec['old_gloss']
-        if r.get('gloss_after') != old_gloss:
-            failures.append(
-                f'  keep_single row mutated! ({word}, {pos}, {cefr}): got {r.get("gloss_after")!r}, expected {old_gloss!r}'
-            )
+        if r.get('gloss_after') == old_gloss:
+            n_keep_unchanged += 1
             continue
-        n_keep_unchanged += 1
-    print(f'  keep_single unchanged: {n_keep_unchanged}/{n_keep}')
+        # Drift tolerated (P5/P5B verdict superseded this keep_single)
+        fix_status = (r.get('fix_status') or '').strip()
+        if fix_status in (
+            'p5_precision_phrase_repaired',
+            'p5b_manual_review_repaired',
+        ):
+            n_keep_drift += 1
+            continue
+        failures.append(
+            f'  keep_single row mutated! ({word}, {pos}, {cefr}): got {r.get("gloss_after")!r}, expected {old_gloss!r}'
+        )
+    print(
+        f'  keep_single unchanged: {n_keep_unchanged}/{n_keep} '
+        f'(drift-tolerated: {n_keep_drift})'
+    )
 
     # 6. policy_review_open = 0 (computed via the policy audit tool)
     print('\n[6] policy_review_open count (via _audit_gloss_policy_coverage)...')

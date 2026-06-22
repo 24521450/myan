@@ -163,15 +163,19 @@ class TestCheckAuditCoverage:
         ]
 
     def test_real_ledger_covers_real_audit(self):
-        """All repair rows match a synthetic pre-apply audit row."""
+        """All repair rows match a synthetic pre-apply audit row.
+
+        After P5B: 337 repair rows match. Keep count = 653 (was 988
+        review_candidate before P5B flipped them).
+        """
         ledger = _load_ledger()
         audit = self._build_pre_apply_audit(ledger)
         matched, repair_recs, keep_recs, errors = _check_audit_coverage(audit, ledger)
         assert errors == [], f'unexpected errors: {errors}'
-        assert len(matched) == 2
-        assert len(repair_recs) == 2
-        # 988 review_candidate + 0 keep_current → keep_recs = 988
-        assert len(keep_recs) == 988
+        assert len(matched) == 337
+        assert len(repair_recs) == 337
+        # 653 keep_current → keep_recs = 653
+        assert len(keep_recs) == 653
 
     def test_missing_repair_audit_row_fails(self):
         """If a repair key has no matching audit row, abort."""
@@ -294,27 +298,51 @@ class TestCrossCutInvariants:
     """Properties that must hold for any applied P5 ledger."""
 
     def test_ledger_count_is_990(self):
-        """Lock in scope: P5 has exactly 990 entries (2 repair + 988 review)."""
+        """Lock in scope: P5 has exactly 990 entries (337 repair + 653 keep).
+
+        After P5B manual review pass: 2 seed repairs + 335 manual repairs = 337
+        repair_gloss; 988 review_candidate flipped to 335 repair + 653 keep.
+        Total = 337 + 653 = 990.
+        """
         ledger = _load_ledger()
         assert len(ledger) == 990, f'P5 scope is 990, got {len(ledger)}'
 
-    def test_repair_count_is_2(self):
+    def test_repair_count_is_337(self):
+        """After P5B: 337 repair_gloss (2 seed + 335 manual)."""
         ledger = _load_ledger()
         n = sum(1 for r in ledger if r.get('decision') == 'repair_gloss')
-        assert n == 2, f'expected 2 repair_gloss, got {n}'
+        assert n == 337, f'expected 337 repair_gloss, got {n}'
 
-    def test_review_candidate_count_is_988(self):
+    def test_review_candidate_count_is_0(self):
+        """After P5B: 0 review_candidate (all 988 are now repair or keep)."""
         ledger = _load_ledger()
         n = sum(1 for r in ledger if r.get('decision') == 'review_candidate')
-        assert n == 988, f'expected 988 review_candidate, got {n}'
+        assert n == 0, f'expected 0 review_candidate, got {n}'
+
+    def test_keep_count_is_653(self):
+        """After P5B: 653 keep_current from manual review."""
+        ledger = _load_ledger()
+        n = sum(1 for r in ledger if r.get('decision') == 'keep_current')
+        assert n == 653, f'expected 653 keep_current, got {n}'
 
     def test_seed_repairs_have_correct_metadata(self):
-        """The 2 seed repairs have the expected metadata per the plan."""
+        """The 2 seed repairs (mediate, solo) have the expected metadata.
+
+        After P5B, the ledger has 337 repair_gloss total, but the 2 seed
+        repairs are still present at the top of the list with their
+        original risk_type metadata.
+        """
         ledger = _load_ledger()
         seed_keys = {('mediate', 'verb', 'C2'), ('solo', 'noun', 'C1')}
-        repairs = [r for r in ledger if r.get('decision') == 'repair_gloss']
-        assert len(repairs) == 2
-        for r in repairs:
+        seed_repairs = [
+            r for r in ledger
+            if r.get('decision') == 'repair_gloss'
+            and (r['word'], r['pos'], r['cefr']) in seed_keys
+        ]
+        assert len(seed_repairs) == 2, (
+            f'expected 2 seed repairs, got {len(seed_repairs)}'
+        )
+        for r in seed_repairs:
             key = (r['word'], r['pos'], r['cefr'])
             assert key in seed_keys, f'unexpected repair key {key}'
             assert r['rule_after'] == 'precision_phrase'
@@ -346,13 +374,51 @@ class TestCrossCutInvariants:
         assert solo['risk_type'] == 'type_narrowing'
 
     def test_review_candidates_have_no_mutation_fields(self):
-        """review_candidate rows have new_gloss=None and rule_after=None
-        (they only flag for future review, no audit change)."""
+        """After P5B: 0 review_candidate rows. keep_current rows have
+        new_gloss=None and rule_after=None (they only mark reviewed, no
+        audit change)."""
         ledger = _load_ledger()
         for rec in ledger:
-            if rec.get('decision') == 'review_candidate':
+            if rec.get('decision') == 'keep_current':
                 assert rec.get('new_gloss') is None
                 assert rec.get('rule_after') is None
+
+    def test_p5b_provenance_present(self):
+        """All post-P5B ledger rows (988 review_candidate flips) carry
+        the `manual_decision` field. The 2 seed repairs pre-date P5B."""
+        ledger = _load_ledger()
+        seed_keys = {('mediate', 'verb', 'C2'), ('solo', 'noun', 'C1')}
+        missing = []
+        for rec in ledger:
+            key = (rec['word'], rec['pos'], rec['cefr'])
+            if key in seed_keys:
+                continue  # seed repairs pre-date P5B
+            assert rec.get('manual_decision') in (
+                'repair_gloss', 'keep_current',
+            ), f'missing manual_decision: {key}'
+
+    def test_qa_normalized_rows_marked(self):
+        """The 7 QA-normalized rows have qa_normalized=True with qa_original."""
+        ledger = _load_ledger()
+        qa_keys = {
+            ('burst', 'verb', 'C1'),
+            ('compromise', 'noun, verb', 'C1'),
+            ('outrage', 'noun, verb', 'C1'),
+            ('overwhelm', 'verb', 'C1'),
+            ('pop', 'verb', 'C1'),
+            ('punk', 'noun', 'B2'),
+            ('whip', 'verb', 'C1'),
+        }
+        seen = 0
+        for rec in ledger:
+            if (
+                rec.get('decision') == 'repair_gloss'
+                and (rec['word'], rec['pos'], rec['cefr']) in qa_keys
+            ):
+                assert rec.get('qa_normalized') is True, rec
+                assert rec.get('qa_original'), rec
+                seen += 1
+        assert seen == 7, f'expected 7 QA-normalized rows, got {seen}'
 
 
 # === Audit policy tool classification =========================================

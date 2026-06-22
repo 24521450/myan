@@ -1,16 +1,21 @@
-"""P5 Precision Phrase Ledger — verifier.
+"""P5 Precision Phrase Ledger + P5B Manual Review — verifier.
 
 Reads the ledger + audit + TXT + JSONL and asserts that:
-  1. Ledger exists, has 990 rows (2 repair + 988 review_candidate).
+  1. Ledger exists, has 990 rows (337 repair + 653 keep).
   2. Every `repair_gloss` decision's audit row reflects the repair
-     (gloss_after, rule_applied=precision_phrase, fix_status, word_count).
+      (gloss_after, rule_applied=precision_phrase, fix_status, word_count).
   3. Every `repair_gloss` decision's TXT row reflects the new gloss
-     (or is explicitly skipped with a deferred reconciliation note).
+      (or is explicitly skipped with a deferred reconciliation note).
   4. Every `repair_gloss` decision's JSONL row reflects the new gloss
-     (when present).
+      (when present).
   5. `policy_review_open = 0` (no P4C regression).
   6. P3B / P4A / P4B verifiers still PASS (regression check).
   7. P4C verifier still PASS (regression check).
+
+After P5B manual review pass:
+- 988 review_candidate rows replaced by 335 repair_gloss + 653 keep_current.
+- 2 seed repairs (mediate, solo) remain at the top of repair_gloss.
+- Total repair_gloss = 337; total keep_current = 653; review_candidate = 0.
 
 Run: `python -m tools._verify_p5_precision_phrase`
 """
@@ -125,10 +130,12 @@ def main() -> int:
 
     if len(ledger) != 990:
         failures.append(f'ledger has {len(ledger)} rows (expected 990)')
-    if n_repair != 2:
-        failures.append(f'ledger has {n_repair} repair rows (expected 2)')
-    if n_review != 988:
-        failures.append(f'ledger has {n_review} review_candidate rows (expected 988)')
+    if n_repair != 337:
+        failures.append(f'ledger has {n_repair} repair rows (expected 337)')
+    if n_review != 0:
+        failures.append(f'ledger has {n_review} review_candidate rows (expected 0)')
+    if n_keep != 653:
+        failures.append(f'ledger has {n_keep} keep rows (expected 653)')
 
     # 2. Load audit + TXT + JSONL
     audit = _load_audit()
@@ -187,10 +194,13 @@ def main() -> int:
                 f'!= ledger rule_after={rule_after!r}'
             )
             continue
-        if audit_row.get('fix_status', '').strip() != 'p5_precision_phrase_repaired':
+        if audit_row.get('fix_status', '').strip() not in (
+            'p5_precision_phrase_repaired',
+            'p5b_manual_review_repaired',
+        ):
             failures.append(
                 f'  ({word}, {pos}, {cefr}) audit fix_status={audit_row.get("fix_status")!r} '
-                f'!= expected p5_precision_phrase_repaired'
+                f'!= expected p5_precision_phrase_repaired | p5b_manual_review_repaired'
             )
             continue
         # Verify gate_status=pass and word_count
@@ -322,9 +332,9 @@ def main() -> int:
         return 1
     print('=' * 72)
     print(
-        f'PASS -- P5 precision phrase verified: {n_repair_synced} repair synced, '
+        f'PASS -- P5 + P5B precision phrase verified: {n_repair_synced} repair synced, '
         f'{n_txt_synced} TXT synced, {n_jsonl_synced} JSONL synced, '
-        f'{n_review} review_candidate recorded.'
+        f'{n_review} review_candidate remaining.'
     )
     print('=' * 72)
     return 0
