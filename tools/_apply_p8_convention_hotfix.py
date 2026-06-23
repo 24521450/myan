@@ -19,6 +19,12 @@ Guardrails (per P8 plan):
   - `miserable.def_before` exactly contains `|` (Oxford source correction).
   - Audit row count preserved at 2487.
 
+NOTE: This is a historical apply tool. It is stale-sensitive. Running this tool
+against the current `data/audit_full_deck_v2.jsonl` may fail and exit `1` because
+target guard rows have already been modified/superseded by subsequent runs
+(e.g., P12, P13, P15). This strict failure is the correct and expected safety
+behavior to prevent accidental wrong-row corruption.
+
 Run:
   python -m tools._apply_p8_convention_hotfix            # dry-run (default)
   python -m tools._apply_p8_convention_hotfix --apply    # write

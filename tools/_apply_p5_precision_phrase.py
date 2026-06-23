@@ -13,6 +13,12 @@ Guard key for matching ledger to audit: `(word, pos, cefr, def_before, old_gloss
 This 5-element guard prevents accidental wrong-row updates if the
 audit drifts between the scan and the apply.
 
+NOTE: This is a historical apply tool. It is stale-sensitive. Running this tool
+against the current `data/audit_full_deck_v2.jsonl` may fail and exit `1` because
+target guard rows have already been modified/superseded by subsequent runs
+(e.g., P12, P13, P15). This strict failure is the correct and expected safety
+behavior to prevent accidental wrong-row corruption.
+
 Run:
   python -m tools._apply_p5_precision_phrase              # dry-run (default)
   python -m tools._apply_p5_precision_phrase --apply      # write
