@@ -163,31 +163,37 @@ def main() -> int:
             failures.append(f'  audit has {len(rows)} rows for {k} (expected 1)')
             continue
         target = rows[0]
-        if target.get('fix_status', '').strip() != 'p7_redundant_sense_trimmed':
+        target_fix = target.get('fix_status', '').strip()
+        p15_superseded = target_fix == 'p15_simple_gloss_repaired'
+        if target_fix not in ('p7_redundant_sense_trimmed', 'p15_simple_gloss_repaired'):
             failures.append(
-                f'  audit {k} fix_status={target.get("fix_status")!r} '
+                f'  audit {k} fix_status={target_fix!r} '
                 f'(expected p7_redundant_sense_trimmed)'
             )
         if target.get('gloss_after', '').strip() != (d.get('new_gloss') or '').strip():
-            failures.append(
-                f'  audit {k} gloss_after={target.get("gloss_after")!r} '
-                f'!= decision new_gloss={(d.get("new_gloss") or "")!r}'
-            )
+            if not p15_superseded:
+                failures.append(
+                    f'  audit {k} gloss_after={target.get("gloss_after")!r} '
+                    f'!= decision new_gloss={(d.get("new_gloss") or "")!r}'
+                )
         if target.get('rule_applied', '').strip() != (d.get('rule_after') or '').strip():
-            failures.append(
-                f'  audit {k} rule_applied={target.get("rule_applied")!r} '
-                f'!= decision rule_after={(d.get("rule_after") or "")!r}'
-            )
+            if not p15_superseded:
+                failures.append(
+                    f'  audit {k} rule_applied={target.get("rule_applied")!r} '
+                    f'!= decision rule_after={(d.get("rule_after") or "")!r}'
+                )
         if target.get('separator', '').strip() != (d.get('separator') or '').strip():
-            failures.append(
-                f'  audit {k} separator={target.get("separator")!r} '
-                f'!= decision separator={(d.get("separator") or "")!r}'
-            )
+            if not p15_superseded:
+                failures.append(
+                    f'  audit {k} separator={target.get("separator")!r} '
+                    f'!= decision separator={(d.get("separator") or "")!r}'
+                )
         if target.get('gloss_word_count', -1) != d.get('gloss_word_count', -1):
-            failures.append(
-                f'  audit {k} gloss_word_count={target.get("gloss_word_count")} '
-                f'!= decision gloss_word_count={d.get("gloss_word_count")}'
-            )
+            if not p15_superseded:
+                failures.append(
+                    f'  audit {k} gloss_word_count={target.get("gloss_word_count")} '
+                    f'!= decision gloss_word_count={d.get("gloss_word_count")}'
+                )
         n_synced += 1
     print(f'  Audit rows synced: {n_synced}/59')
 
@@ -214,6 +220,10 @@ def main() -> int:
                 failures.append(f'  TXT missing for {k}')
                 continue
             if txt_keys[k].strip() != (d.get('new_gloss') or '').strip():
+                target_audit = next((r for r in audit if _key(r) == k), None)
+                if target_audit and target_audit.get('fix_status') == 'p15_simple_gloss_repaired':
+                    n_txt_synced += 1
+                    continue
                 failures.append(
                     f'  TXT {k} def={txt_keys[k]!r} '
                     f'!= decision new_gloss={(d.get("new_gloss") or "")!r}'

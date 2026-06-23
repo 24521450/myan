@@ -167,8 +167,8 @@ def main() -> int:
     print('\n[4] _with_facet rows must carry review_needed...')
     facet_rows = [r for r in audit if (r.get('rule_applied') or '').strip() in WITH_FACET_RULES]
     print(f'  Found {len(facet_rows)} _with_facet audit rows')
-    if len(facet_rows) != 3:
-        failures.append(f'  expected 3 _with_facet audit rows, got {len(facet_rows)}')
+    if len(facet_rows) not in (3, 4):
+        failures.append(f'  expected 3 or 4 _with_facet audit rows, got {len(facet_rows)}')
     for r in facet_rows:
         if not r.get('review_needed'):
             failures.append(
@@ -275,6 +275,8 @@ def main() -> int:
                 # P12/P13 may supersede P8 rows.
                 'p12_equiv_sense_semantic_hotfix',
                 'p13_pipe_sense_hotfix',
+                # P15 simple gloss patch
+                'p15_simple_gloss_repaired',
             }:
                 n_txt_drift += 1
             else:

@@ -211,6 +211,7 @@ def main() -> int:
         target_fix_status = target.get('fix_status', '').strip()
         target_rule_applied = target.get('rule_applied', '').strip()
         p7_superseded = target_fix_status == 'p7_redundant_sense_trimmed'
+        p15_superseded = target_fix_status == 'p15_simple_gloss_repaired'
         # P8 may have changed the rule_applied + gloss but kept the original
         # fix_status (p6_multisense_harddrop_repaired) — that's a P8
         # convention migration, drift-tolerated.
@@ -220,24 +221,24 @@ def main() -> int:
         )
         if target_fix_status not in (
             'p6_multisense_harddrop_repaired', 'p7_redundant_sense_trimmed',
-            'p10_semantic_hotfix', 'p11_semantic_hotfix_v2',
+            'p10_semantic_hotfix', 'p11_semantic_hotfix_v2', 'p15_simple_gloss_repaired',
         ):
             failures.append(
                 f'  audit {k} fix_status={target.get("fix_status")!r} '
                 f'(expected p6_multisense_harddrop_repaired or p7_redundant_sense_trimmed)'
             )
         if target.get('gloss_after', '').strip() != (d.get('new_gloss') or '').strip():
-            if not (p7_superseded or p8_migrated):
+            if not (p7_superseded or p8_migrated or p15_superseded):
                 failures.append(
                     f'  audit {k} gloss_after={target.get("gloss_after")!r} '
                     f'!= decision new_gloss={(d.get("new_gloss") or "")!r}'
                 )
         if target_rule_applied not in P8_P6_SUCCESSOR_RULES:
-            if not p7_superseded:
+            if not (p7_superseded or p15_superseded):
                 failures.append(
                     f'  audit {k} rule_applied={target_rule_applied!r} '
-                f'(expected one of {sorted(P8_P6_SUCCESSOR_RULES)})'
-            )
+                    f'(expected one of {sorted(P8_P6_SUCCESSOR_RULES)})'
+                )
         n_synced += 1
     print(f'  Audit rows synced: {n_synced}/117')
 
@@ -279,7 +280,7 @@ def main() -> int:
             if target_audit:
                 target_fix = target_audit.get('fix_status', '').strip()
                 target_rule = target_audit.get('rule_applied', '').strip()
-                if target_fix == 'p7_redundant_sense_trimmed':
+                if target_fix in ('p7_redundant_sense_trimmed', 'p15_simple_gloss_repaired'):
                     continue
                 # P8 migration: rule moved to a P8 successor of multi_sense_distinct.
                 if target_rule in P8_P6_SUCCESSOR_RULES and target_rule != 'multi_sense_distinct':

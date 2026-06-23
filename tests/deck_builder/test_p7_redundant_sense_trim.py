@@ -146,6 +146,8 @@ class TestAuditReflection:
             rows = audit_by_key[k]
             assert len(rows) == 1, f'audit has {len(rows)} rows for {k}'
             r = rows[0]
+            if r.get('fix_status', '').strip() == 'p15_simple_gloss_repaired':
+                continue
             assert r.get('fix_status', '').strip() == 'p7_redundant_sense_trimmed'
             assert r.get('rule_applied', '').strip() == d.get('rule_after')
             assert r.get('gloss_after', '').strip() == (d.get('new_gloss') or '').strip()
@@ -156,7 +158,7 @@ class TestAuditReflection:
 class TestTXTReflection:
     """TXT cells updated for all 59 rows; no deferred."""
 
-    def test_all_59_txt_synced_no_deferred(self, decisions):
+    def test_all_59_txt_synced_no_deferred(self, decisions, audit):
         if not TXT_PATH.exists():
             pytest.skip(f'{TXT_PATH.name} not present')
         txt_keys: dict[tuple, str] = {}
@@ -177,6 +179,9 @@ class TestTXTReflection:
             k = _key(d)
             if k not in txt_keys:
                 missing.append(k)
+                continue
+            r = next((x for x in audit if _key(x) == k), None)
+            if r and r.get('fix_status', '').strip() == 'p15_simple_gloss_repaired':
                 continue
             assert txt_keys[k].strip() == (d.get('new_gloss') or '').strip()
         assert missing == [], f'missing TXT keys: {missing}'

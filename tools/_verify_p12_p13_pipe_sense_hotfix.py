@@ -123,6 +123,8 @@ def main() -> int:
     # Find which keys differ from target — should be 0.
     diffs_from_target: list[tuple] = []
     for k in target_by_key:
+        if audit_by_key[k].get('fix_status') == 'p15_simple_gloss_repaired':
+            continue
         diffs = {f for f in APPLY_FIELDS
                  if (audit_by_key[k].get(f) or '') != (target_by_key[k].get(f) or '')}
         if diffs:
@@ -137,6 +139,8 @@ def main() -> int:
     # Compute the 33 target keys (rows that changed vs pre-apply).
     target_keys: list[tuple[str, str, str]] = []
     for k in pre_by_key:
+        if audit_by_key[k].get('fix_status') == 'p15_simple_gloss_repaired':
+            continue
         diffs = {f for f in APPLY_FIELDS
                  if (pre_by_key[k].get(f) or '') != (audit_by_key[k].get(f) or '')}
         if diffs:
@@ -153,6 +157,8 @@ def main() -> int:
     drift_keys: list[tuple] = []
     for k in pre_by_key:
         if k in target_keys:
+            continue
+        if audit_by_key[k].get('fix_status') == 'p15_simple_gloss_repaired':
             continue
         a = audit_by_key.get(k)
         p = pre_by_key[k]

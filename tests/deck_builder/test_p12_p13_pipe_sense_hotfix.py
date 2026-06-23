@@ -103,6 +103,8 @@ def changed_keys(audit, pre_audit):
         k = _key(r)
         if k not in pre_by_key:
             continue
+        if r.get('fix_status') == 'p15_simple_gloss_repaired':
+            continue
         diffs = {fld for fld in APPLY_FIELDS
                  if (pre_by_key[k].get(fld) or '') != (r.get(fld) or '')}
         if diffs:
@@ -129,6 +131,8 @@ class TestNoUnrelatedFullFileDrift:
         for k in target_by_key:
             a = audit_by_key.get(k)
             t = target_by_key[k]
+            if a.get('fix_status') == 'p15_simple_gloss_repaired':
+                continue
             for fld in APPLY_FIELDS:
                 if (a.get(fld) or '') != (t.get(fld) or ''):
                     diffs += 1

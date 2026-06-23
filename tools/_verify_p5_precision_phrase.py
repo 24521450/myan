@@ -239,10 +239,11 @@ def main() -> int:
             # If audit_rule is in P8_SUCCESSOR_RULES, the gloss drift is
             # legitimately a P8 convention migration.
             p8_drift = audit_rule in P8_SUCCESSOR_RULES
-            # P12/P13 may have superseded this P5 row.
+            # P12/P13/P15 may have superseded this P5 row.
             p12_p13_drift = audit_fix in {
                 'p12_equiv_sense_semantic_hotfix',
                 'p13_pipe_sense_hotfix',
+                'p15_simple_gloss_repaired',
             }
             if not (p6_drift or p7_drift or p8_drift or p12_p13_drift):
                 failures.append(
@@ -267,10 +268,11 @@ def main() -> int:
                 '4sense_distinct', '5sense_distinct',
                 '2sense_distinct_with_facet', '3sense_distinct_with_facet',
             )
-            # P12/P13 may have superseded this row.
+            # P12/P13/P15 may have superseded this row.
             or audit_row.get('fix_status', '').strip() in {
                 'p12_equiv_sense_semantic_hotfix',
                 'p13_pipe_sense_hotfix',
+                'p15_simple_gloss_repaired',
             }
         ):
             failures.append(
@@ -290,6 +292,7 @@ def main() -> int:
             'p11_semantic_hotfix_v2',
             'p12_equiv_sense_semantic_hotfix',
             'p13_pipe_sense_hotfix',
+            'p15_simple_gloss_repaired',
         ):
             failures.append(
                 f'  ({word}, {pos}, {cefr}) audit fix_status={audit_row.get("fix_status")!r} '
@@ -344,6 +347,7 @@ def main() -> int:
                 'p11_semantic_hotfix_v2',
                 'p12_equiv_sense_semantic_hotfix',
                 'p13_pipe_sense_hotfix',
+                'p15_simple_gloss_repaired',
             ):
                 n_txt_drift += 1
                 continue
@@ -388,6 +392,7 @@ def main() -> int:
                 'p11_semantic_hotfix_v2',
                 'p12_equiv_sense_semantic_hotfix',
                 'p13_pipe_sense_hotfix',
+                'p15_simple_gloss_repaired',
             ):
                 n_jsonl_drift += 1
                 continue

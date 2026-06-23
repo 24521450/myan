@@ -126,10 +126,9 @@ def main() -> int:
             failures.append(f'audit row missing for {key}')
             continue
         r = audit_by_key[key]
-        # Drift tolerance: P7 may have collapsed this row's gloss to a
-        # single-chunk common_core_trimmed form. Accept P7's verdict as
-        # the later, more thorough pass.
-        if r.get('fix_status', '').strip() == 'p7_redundant_sense_trimmed':
+        # Drift tolerance: P7/P15 may have collapsed/mutated this row's gloss.
+        # Accept P7/P15 verdict as the later, more thorough pass.
+        if r.get('fix_status', '').strip() in ('p7_redundant_sense_trimmed', 'p15_simple_gloss_repaired'):
             synced_audit += 1
         elif r['gloss_after'] != EXPECTED_GLOSS_BY_KEY[key]:
             failures.append(
@@ -148,7 +147,7 @@ def main() -> int:
     synced_txt = 0
     p7_keys: set[tuple] = {
         (r['word'].lower(), r['pos'].lower(), r['cefr'].upper())
-        for r in audit if (r.get('fix_status') or '').strip() == 'p7_redundant_sense_trimmed'
+        for r in audit if (r.get('fix_status') or '').strip() in ('p7_redundant_sense_trimmed', 'p15_simple_gloss_repaired')
     }
     for word, pos, cefr, _o, _n in P4A_FIXES:
         key = (word, pos.lower(), cefr.upper())
@@ -216,7 +215,7 @@ def main() -> int:
         # P4A originally expected '|', but P7 may have collapsed this
         # row's gloss to a single-chunk common_core_trimmed form (separator=none).
         # Accept P7's verdict as the later, more thorough pass.
-        if (r.get('fix_status') or '').strip() != 'p7_redundant_sense_trimmed':
+        if (r.get('fix_status') or '').strip() not in ('p7_redundant_sense_trimmed', 'p15_simple_gloss_repaired'):
             if r.get('separator') != '|':
                 failures.append(
                     f'separator mismatch {key}: got {r.get("separator")!r}, expected "|"'
