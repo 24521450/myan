@@ -260,15 +260,50 @@
 }
 
 .ipa-text {
-  
+  display: inline-flex;
+  align-items: center;
   font-family: 'Charis SIL', 'Doulos SIL', 'Segoe UI', 'Lucida Sans Unicode', 'Arial Unicode MS', sans-serif;
-  font-size: 24px;
+  font-size: 21px;
   color: #94a3b8;
-  letter-spacing: 0.02em;
-  background: #1b1a1a;
-  padding: 2px 10px;
-  border-radius: 6px;
-  border: 1px solid #272626;
+  letter-spacing: 0.01em;
+}
+.ipa-cluster {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ipa-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  background: #171a20;
+  border: 1px solid #2b3442;
+  border-radius: 8px;
+  padding: 3px 10px 4px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+.ipa-chip-uk {
+  border-color: #244263;
+}
+.ipa-chip-us {
+  border-color: #4b2c35;
+}
+.ipa-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #93c5fd;
+  letter-spacing: 0.06em;
+}
+.ipa-chip-us .ipa-label {
+  color: #fda4af;
+}
+.ipa-symbols {
+  font-size: 21px;
+  color: #cbd5e1;
+  white-space: nowrap;
 }
 
 .divider { border: none; border-top: 1px solid #2e2d2d; margin: 12px 0; }
@@ -878,11 +913,10 @@
     </div>
 
     <div class="demo-block">
-      <div class="demo-label">IPA pill</div>
+      <div class="demo-label">IPA chips</div>
       <div class="demo-row">
-        <span class="ipa-text">/rɪɡərəs/</span>
-        <span class="ipa-text">/əˈbændən/</span>
-        <span class="ipa-text">/ˈpærədaɪm/</span>
+        <span class="ipa-text"><span class="ipa-cluster"><span class="ipa-chip ipa-chip-uk"><span class="ipa-label">UK</span><span class="ipa-symbols">/rɪɡərəs/</span></span><span class="ipa-chip ipa-chip-us"><span class="ipa-label">US</span><span class="ipa-symbols">/rɪɡərəs/</span></span></span></span>
+        <span class="ipa-text"><span class="ipa-cluster"><span class="ipa-chip ipa-chip-uk"><span class="ipa-label">UK</span><span class="ipa-symbols">/əˈbændən/</span></span><span class="ipa-chip ipa-chip-us"><span class="ipa-label">US</span><span class="ipa-symbols">/əˈbændən/</span></span></span></span>
       </div>
     </div>
 
