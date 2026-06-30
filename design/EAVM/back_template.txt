@@ -111,6 +111,18 @@
     return (ok && html) ? html + ' ' + trim(text.substring(m[0].length)) : text;
   }
 
+  function hasVietnameseChars(text) {
+    return /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text);
+  }
+
+  function hideVietnameseGloss(html) {
+    return html.replace(/\s*\(([^()]*)\)\s*$/g, function(match, gloss) {
+      var clean = trim(gloss);
+      if (!hasVietnameseChars(clean)) return match;
+      return ' <button type="button" class="vi-reveal" onclick="this.className+=\' is-open\'; this.disabled=true;"><span class="vi-reveal-label">Hiện nghĩa Việt</span><span class="vi-reveal-text">(' + clean + ')</span></button>';
+    });
+  }
+
   // 1. POS chips
   var rawPos = getRaw('raw-pos-back');
   var posDiv = document.getElementById('top-bar-pos-back');
@@ -194,7 +206,7 @@
       if (ex && wordRe) ex = ex.replace(wordRe, function(m) { return '<span class="word-highlight">' + m + '</span>'; });
       var badge = multi ? '<span class="sense-num">' + badges[di] + '</span>' : '';
       sHtml += '<div class="sense-row">'
-             + '<div class="sense-def">' + badge + parseDef(def) + '</div>'
+             + '<div class="sense-def">' + badge + hideVietnameseGloss(parseDef(def)) + '</div>'
              + '<div class="sense-ex">'  + (ex ? '\u201c' + ex + '\u201d' : '') + '</div>'
              + '</div>';
     }
