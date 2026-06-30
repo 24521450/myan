@@ -31,14 +31,14 @@ EX_SEP = '|'
 COLL_SEPARATOR = '|'
 
 class BuildNotesPaths(NamedTuple):
-    jsonl_path: Path
-    txt_path: Path
-    audit_jsonl_path: Path
+    oxford_jsonl_path: Path
+    notes_txt_path: Path
+    deck_audit_jsonl_path: Path
     gamma_verdicts_path: Path
     oxford_3000_md: Path
     oxford_5000_md: Path
     awl_md: Path
-    filled_path: Path
+    manual_card_fills_path: Path
     audio_dir: Path
 
 class BuiltCard(NamedTuple):
@@ -544,17 +544,17 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
     vocab_awl = _parse_vocab_list(paths.awl_md)
     target_keys = vocab_3000 | vocab_5000 | vocab_awl
 
-    existing = _parse_existing_txt(paths.txt_path)
+    existing = _parse_existing_txt(paths.notes_txt_path)
     gamma = _load_gamma_verdicts(paths.gamma_verdicts_path)
 
     audit_glosses, audit_examples, audit_collocations = _load_audit_overrides(
-        paths.audit_jsonl_path
+        paths.deck_audit_jsonl_path
     )
 
     filled_keys = set()
-    if paths.filled_path.exists():
+    if paths.manual_card_fills_path.exists():
         try:
-            filled_data = json.load(paths.filled_path.open(encoding='utf-8'))
+            filled_data = json.load(paths.manual_card_fills_path.open(encoding='utf-8'))
             for r in filled_data:
                 filled_keys.add((
                     (r.get('word') or '').strip().lower(),
@@ -566,7 +566,7 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
 
     by_word: dict[str, list[dict]] = {}
     idioms_db: dict[str, list[tuple[dict, dict]]] = {}
-    with paths.jsonl_path.open(encoding='utf-8') as f:
+    with paths.oxford_jsonl_path.open(encoding='utf-8') as f:
         for line in f:
             r = json.loads(line)
             w = (r.get('word') or '').lower()
@@ -859,9 +859,9 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
     jsonl_text = '\n'.join(jsonl_lines) + '\n'
 
     header_lines = []
-    # Read headers if existing txt_path exists
-    if paths.txt_path.exists():
-        for line in paths.txt_path.read_text(encoding='utf-8').splitlines()[:6]:
+    # Read headers if existing notes_txt_path exists
+    if paths.notes_txt_path.exists():
+        for line in paths.notes_txt_path.read_text(encoding='utf-8').splitlines()[:6]:
             if line.startswith('#tags column:'):
                 header_lines.append('#tags column:17')
             else:
