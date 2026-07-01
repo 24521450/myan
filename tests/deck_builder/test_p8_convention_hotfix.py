@@ -12,7 +12,7 @@ Required checks:
     + 415 multi-chunk (Nsense_distinct / _with_facet) = 457 total.
   - All decisions' gloss_word_count matches actual count.
   - All decisions' gloss_after passes validate_verdict.
-  - Audit row count is 2487.
+  - Audit row count is 2488 after the overlap POS split.
   - 457 audit rows synced with fix_status in
     {p9_convention_repaired, p10_semantic_hotfix, p11_semantic_hotfix_v2}
     OR unchanged for non-P8 rows.
@@ -188,8 +188,8 @@ class TestRuleCodeMigration:
 class TestAuditReflection:
     """P8 decisions are reflected in the audit master."""
 
-    def test_audit_count_is_2487(self, audit):
-        assert len(audit) == 2487, f'expected 2487, got {len(audit)}'
+    def test_audit_count_is_2488(self, audit):
+        assert len(audit) == 2488, f'expected 2488, got {len(audit)}'
 
     def test_no_deprecated_rule_in_audit(self, audit):
         """`precision_phrase` and `multi_sense_distinct` must NOT appear in audit post-P8."""

@@ -161,8 +161,8 @@ class TestQAHeadwordLeakFixes:
 class TestAuditReflection:
     """P6 decisions are reflected in the audit master."""
 
-    def test_audit_count_is_2487(self, audit):
-        assert len(audit) == 2487, f'expected 2487 audit rows, got {len(audit)}'
+    def test_audit_count_is_2488(self, audit):
+        assert len(audit) == 2488, f'expected 2488 audit rows, got {len(audit)}'
 
     def test_all_p6_audit_rows_synced(self, decisions, audit):
         """Every P6 decision's (word, pos, cefr) audit row reflects the new gloss.

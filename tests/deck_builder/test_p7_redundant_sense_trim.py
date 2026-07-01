@@ -11,7 +11,7 @@ Required checks:
     = 59 total.
   - All decisions' gloss_word_count matches actual count.
   - All decisions' new_gloss passes validate_verdict (post-P5D).
-  - Audit row count is 2487; no duplicate (word,pos,cefr) guards.
+  - Audit row count is 2488 after the overlap POS split; no duplicate guards.
   - 59 audit rows synced with fix_status = p7_redundant_sense_trimmed.
   - 59 TXT cells synced; 0 deferred keys.
   - Rule codes are in VALID_RULE_CODES and KNOWN_RULES.
@@ -135,8 +135,8 @@ class TestWordCountAndValidator:
 class TestAuditReflection:
     """P7 decisions are reflected in the audit master."""
 
-    def test_audit_count_is_2487(self, audit):
-        assert len(audit) == 2487, f'expected 2487, got {len(audit)}'
+    def test_audit_count_is_2488(self, audit):
+        assert len(audit) == 2488, f'expected 2488, got {len(audit)}'
 
     def test_all_p7_audit_rows_synced(self, decisions, audit):
         audit_by_key: dict[tuple, dict] = {}

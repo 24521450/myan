@@ -2,7 +2,7 @@
 
 Locks in the P12+P13 plan's acceptance criteria:
 
-  - Audit row count is 2487.
+  - Audit row count is 2488 after the overlap POS split.
   - Exactly 33 audit rows match the P13 target values.
   - No non-target rows were changed (vs the pre-apply backup).
   - Each target row's gloss_after, rule_applied, separator, fix_status
@@ -28,6 +28,7 @@ from pathlib import Path
 import pytest
 
 from tests.deck_builder.historical_supersession import (
+    DEF_BEFORE_SYNC_FIX_STATUS,
     should_tolerate_historical_drift,
     is_gloss_review_superseded,
 )
@@ -42,6 +43,11 @@ JSONL_PATH = paths.anki_notes_jsonl
 INPUT_PATH = Path(r"C:\Users\admin\Downloads\audit_full_deck_v2_p13_pipe_sense_hotfix.jsonl")
 
 EXPECTED_CHANGE_COUNT = 33
+OVERLAP_COMBINED_KEY = ('overlap', 'noun, verb', 'UNCLASSIFIED')
+OVERLAP_SPLIT_KEYS = {
+    ('overlap', 'noun', 'UNCLASSIFIED'),
+    ('overlap', 'verb', 'UNCLASSIFIED'),
+}
 
 APPLY_FIELDS = (
     'def_before', 'gloss_after', 'separator', 'rule_applied',
@@ -130,7 +136,7 @@ class TestScopeLock:
 
 
 class TestNoUnrelatedFullFileDrift:
-    """Audit fully matches the P13 target on all 2487 rows."""
+    """Audit matches P13 except rows superseded by later reviewed fixes."""
 
     def test_audit_matches_target_on_all_rows(self, audit, target):
         audit_by_key = {_key(r): r for r in audit}
@@ -139,6 +145,14 @@ class TestNoUnrelatedFullFileDrift:
         for k in target_by_key:
             a = audit_by_key.get(k)
             t = target_by_key[k]
+            if a is None and k == OVERLAP_COMBINED_KEY:
+                split_rows = [audit_by_key.get(split_key) for split_key in OVERLAP_SPLIT_KEYS]
+                assert all(split_rows), 'overlap combined row missing without noun/verb replacements'
+                assert all(
+                    (row.get('fix_status') or '') == DEF_BEFORE_SYNC_FIX_STATUS
+                    for row in split_rows
+                )
+                continue
             if should_tolerate_historical_drift(a, 'p15_simple_gloss_repaired'):
                 continue
             for fld in APPLY_FIELDS:
