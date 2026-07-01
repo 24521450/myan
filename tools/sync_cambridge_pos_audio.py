@@ -18,6 +18,7 @@ from src.scraper.cambridge_audio import (
     normalize_word,
     normalize_pos,
     parse_cambridge_entries,
+    resolve_audio_pos,
     select_entry,
     get_audio_filename,
 )
@@ -31,9 +32,9 @@ COLLISION_WORDS = [
     "tackle", "terminal", "total", "trace", "trigger"
 ]
 
-SCOPED_WORDS = set(COLLISION_WORDS) | {"curate", "sake"}
+SCOPED_WORDS = set(COLLISION_WORDS) | {"converse", "curate", "sake"}
 
-PREFLIGHT_CARD_COUNT = 60  # 28 collision groups (58 cards) + curate (1) + sake (1)
+PREFLIGHT_CARD_COUNT = 62  # Existing migration scope plus two converse homonyms
 
 CAMBRIDGE_BASE_URL = "https://dictionary.cambridge.org"
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
@@ -168,7 +169,7 @@ def main() -> int:
     
     for card in scoped_cards:
         word = card.get("word")
-        pos = card.get("pos")
+        pos = resolve_audio_pos(word, card.get("pos", ""))
         
         word_clean = normalize_word(word)
         source_file = word_to_file.get(word_clean)

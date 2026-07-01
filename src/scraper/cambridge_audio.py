@@ -3,6 +3,11 @@ import re
 from typing import Any, Optional
 from lxml import html as lxml_html
 
+
+_CARD_AUDIO_POS_OVERRIDES = {
+    ("converse", "adjective_noun_verb"): "verb",
+}
+
 def normalize_word(word: str) -> str:
     """Strip parentheticals, trim whitespace, and lowercase the word."""
     return re.sub(r"\s*\(.*?\)\s*", "", word).strip().lower()
@@ -10,6 +15,12 @@ def normalize_word(word: str) -> str:
 def normalize_pos(pos: str) -> str:
     """Normalize POS to a lowercase snake_case slug (e.g. 'noun, verb' -> 'noun_verb')."""
     return "_".join([p.strip().lower() for p in pos.replace(",", " ").replace("/", " ").split() if p.strip()])
+
+
+def resolve_audio_pos(word: str, card_pos: str) -> str:
+    """Return the Cambridge entry POS that supplies a card's pronunciation."""
+    key = (normalize_word(word), normalize_pos(card_pos))
+    return _CARD_AUDIO_POS_OVERRIDES.get(key, card_pos)
 
 def parse_cambridge_entries(html_bytes: bytes) -> list[dict[str, Any]]:
     """Parse Cambridge HTML bytes into a list of entry dicts containing pos and audio paths."""

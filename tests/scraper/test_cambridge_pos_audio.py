@@ -4,6 +4,7 @@ import pytest
 from src.scraper.cambridge_audio import (
     normalize_word,
     normalize_pos,
+    resolve_audio_pos,
     select_entry,
     get_audio_filename,
 )
@@ -20,6 +21,8 @@ def test_normalization():
     assert normalize_pos("noun, verb") == "noun_verb"
     assert normalize_pos("verb/noun") == "verb_noun"
     assert normalize_pos("Adjective") == "adjective"
+    assert resolve_audio_pos("converse", "adjective, noun, verb") == "verb"
+    assert resolve_audio_pos("deposit", "noun, verb") == "noun, verb"
 
 def test_select_entry_override_locks():
     entries = [
@@ -85,3 +88,14 @@ def test_builder_resolver_fallback():
     assert _resolve_audio_filename("Alien", "noun", "uk", available) == ""  # case sensitive check
     # Neither exists
     assert _resolve_audio_filename("craft", "noun", "uk", available) == ""
+
+
+def test_builder_resolver_uses_verb_audio_for_converse_card():
+    available = {
+        "cambridge_uk_converse.mp3",
+        "cambridge_uk_converse_verb.mp3",
+    }
+
+    assert _resolve_audio_filename(
+        "converse", "adjective, noun, verb", "uk", available
+    ) == "[sound:cambridge_uk_converse_verb.mp3]"

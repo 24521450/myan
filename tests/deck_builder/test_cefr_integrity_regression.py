@@ -55,6 +55,38 @@ def test_corrected_cards_preserve_guids_and_homonym_metadata():
     assert "take clothes off" not in strip["definition"]
 
 
+def test_converse_homonyms_are_separate_cards():
+    cards = _jsonl_rows(PATHS.anki_notes_jsonl)
+    converse = {
+        (card["pos"], card["cefr"]): card
+        for card in cards
+        if card["word"] == "converse"
+    }
+
+    assert set(converse) == {
+        ("verb", "UNCLASSIFIED"),
+        ("adjective, noun", "UNCLASSIFIED"),
+    }
+
+    verb = converse[("verb", "UNCLASSIFIED")]
+    assert verb["guid"] == "hu-nITV:EB"
+    assert verb["ipa"] == "UK: /kənˈvɜːs/ | US: /kənˈvɜːrs/"
+    assert verb["definition"] == "have a conversation"
+    assert verb["example"] == "She conversed with the Romanians in French."
+    assert verb["source2"] == "AWL"
+    assert verb["uk_audio"] == "[sound:cambridge_uk_converse_verb.mp3]"
+    assert verb["us_audio"] == "[sound:cambridge_us_converse_verb.mp3]"
+
+    nominal = converse[("adjective, noun", "UNCLASSIFIED")]
+    assert nominal["guid"] == "dI;xOQZ.Jd"
+    assert nominal["ipa"] == "UK: /ˈkɒnvɜːs/ | US: /ˈkɑːnvɜːrs/"
+    assert nominal["definition"] == "opposite"
+    assert nominal["example"].startswith("the converse effect|")
+    assert nominal["source2"] == "AWL"
+    assert nominal["uk_audio"] == "[sound:cambridge_uk_converse_adjective_noun.mp3]"
+    assert nominal["us_audio"] == "[sound:cambridge_us_converse_adjective_noun.mp3]"
+
+
 def test_manual_fills_only_cover_missing_oxford_rows():
     rows = json.loads(PATHS.manual_card_fills.read_text(encoding="utf-8"))
     blocked_keys = {

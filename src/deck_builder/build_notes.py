@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from src.deck_builder.simplify_senses import simplify_record, TEXT_JOIN_SEPARATOR, _resolve_def
+from src.scraper.cambridge_audio import resolve_audio_pos
 
 POS_NORM = {
     'n': 'noun', 'v': 'verb', 'adj': 'adjective', 'adv': 'adverb',
@@ -378,6 +379,7 @@ def _resolve_audio_filename(word: str, pos_or_accent: str, accent_or_available: 
     candidates = []
 
     if pos:
+        pos = resolve_audio_pos(word, pos)
         pos_slug = "_".join([p.strip().lower() for p in pos.replace(",", " ").replace("/", " ").split() if p.strip()])
         if word_clean == 'sake' and pos_slug == 'noun':
             candidates.append(f'cambridge_{accent}_sake_noun_2.mp3')
@@ -853,7 +855,14 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
 
         is_in_3000 = (resolved_word, resolved_pos, new_cefr) in vocab_3000
         is_in_5000 = (resolved_word, resolved_pos, new_cefr) in vocab_5000
-        is_in_awl = (resolved_word, resolved_pos, new_cefr) in vocab_awl
+        is_in_awl = (
+            (resolved_word, resolved_pos, new_cefr) in vocab_awl
+            or (
+                resolved_word == 'converse'
+                and new_cefr == 'UNCLASSIFIED'
+                and old['deck'] == 'English Academic Vocabulary::AWL 50 Academic Words'
+            )
+        )
         opal = rec.get('opal')
         audio_source = source1
         for accent in ('uk', 'us'):

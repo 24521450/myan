@@ -2,6 +2,7 @@ from __future__ import annotations
 
 GLOSS_REVIEW_FIX_STATUS = "gloss_review_log_20260630"
 DEF_BEFORE_SYNC_FIX_STATUS = "def_before_oxford_sync_20260701"
+HOMONYM_SPLIT_FIX_STATUS = "homonym_split_20260701"
 
 DELETED_KEYS = {
     ("resilient", "adjective, noun", "UNCLASSIFIED"),
@@ -73,6 +74,8 @@ def should_tolerate_historical_drift(row: dict, extra_statuses: set[str] | list[
     if is_gloss_review_superseded(row):
         return True
     if fix_status(row) == DEF_BEFORE_SYNC_FIX_STATUS:
+        return True
+    if fix_status(row) == HOMONYM_SPLIT_FIX_STATUS:
         return True
     if not extra_statuses:
         return False
