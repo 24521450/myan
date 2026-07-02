@@ -212,6 +212,10 @@ def merge_word_records(records: list[dict]) -> dict:
     if len(records) == 1:
         # Deep copy so caller can mutate without affecting input
         result = copy.deepcopy(records[0])
+        for pd in result.get("pos_data", []):
+            for d in pd.get("definitions", []):
+                if "synonyms" not in d:
+                    d["synonyms"] = []
         # Apply skip flag rules
         _apply_skip_flags(result)
         return result
@@ -296,7 +300,7 @@ def merge_word_records(records: list[dict]) -> dict:
 
     # pos_data: concatenate from all records, dedupe by (pos, sensenum_local, text)
     pos_data_merged: list[dict] = []
-    seen_defs: set = set()
+    seen_defs: dict[tuple, dict] = {}
     for r in records:
         for pd in r.get("pos_data", []):
             # Within a single record, dedupe defs by key
@@ -304,12 +308,20 @@ def merge_word_records(records: list[dict]) -> dict:
             for d in pd.get("definitions", []):
                 key = (pd["pos"], d.get("sensenum_local"), d.get("text"))
                 if key not in seen_defs:
-                    seen_defs.add(key)
-                    new_defs.append(d)
+                    d_copy = copy.deepcopy(d)
+                    if "synonyms" not in d_copy:
+                        d_copy["synonyms"] = []
+                    seen_defs[key] = d_copy
+                    new_defs.append(d_copy)
+                else:
+                    d_existing = seen_defs[key]
+                    existing_syns = d_existing.get("synonyms") or []
+                    new_syns = d.get("synonyms") or []
+                    d_existing["synonyms"] = _dedup_preserve_order(existing_syns + new_syns)
             if new_defs:
                 # Re-number n: 1-based within each pos_data entry
-                for n, d in enumerate(new_defs, start=1):
-                    d["n"] = n
+                for n, d_item in enumerate(new_defs, start=1):
+                    d_item["n"] = n
                 pos_data_merged.append({
                     "pos": pd["pos"],
                     "register_tags": _dedup_preserve_order(pd.get("register_tags", [])),

@@ -243,6 +243,24 @@ def _extract_see_also(root) -> list[str]:
 
 # Per-sense extractors ----------------------------------------------------
 
+def _extract_synonyms(sense_el) -> list[str]:
+    """Extract sense-level synonyms from span.xrefs[xt='syn'] span.xh."""
+    out: list[str] = []
+    for xrefs in sense_el.cssselect("span[xt='syn']"):
+        cls = xrefs.get("class") or ""
+        hcls = xrefs.get("hclass") or ""
+        if "xrefs" not in cls.split() and hcls != "xrefs":
+            continue
+        for xh in xrefs.cssselect("span"):
+            x_cls = xh.get("class") or ""
+            x_hcls = xh.get("hclass") or ""
+            if "xh" in x_cls.split() or x_hcls == "xh":
+                txt = (xh.text or "").strip()
+                if txt:
+                    out.append(txt)
+    return _dedup_preserve_order(out)
+
+
 def _extract_sensenum(sense_el) -> Optional[str]:
     """sensenum attribute on <li class='sense'> — nullable for idioms."""
     return sense_el.get("sensenum")
@@ -535,6 +553,7 @@ def _build_definition(n: int, sense_el) -> dict:
         "examples": _extract_examples(sense_el),
         "is_phrase": False,    # not detected in v1
         "is_idiom": _is_idiom(sense_el),
+        "synonyms": _extract_synonyms(sense_el),
     }
 
 

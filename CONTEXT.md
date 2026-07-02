@@ -34,6 +34,10 @@ _Avoid_: Register chip, inline label, marker
 A specific type of Register Tag (`.rt-subject`) that names the academic domain of a sense (biology, law, medicine, etc.). 23 subject labels total — see `data/oxford_labels.json` and `design/index.html` vùng 5.
 _Avoid_: Topic chip, domain tag
 
+**Sense Synonym**:
+A list of synonyms (`definitions[].synonyms`) extracted at the individual sense level from the Oxford corpus (specifically from `<span class="xrefs" xt="syn"> <span class="xh">synonym</span> </span>`). Sourced purely as dictionary metadata; not rendered on Anki cards and does not participate in definition simplification.
+_Avoid_: definition synonym, word synonym
+
 ### Word-level labels (in the meta-row)
 
 **Usage Tag**:

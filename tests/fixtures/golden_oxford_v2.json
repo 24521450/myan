@@ -58,7 +58,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           },
           {
             "n": 2,
@@ -89,7 +90,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           },
           {
             "n": 3,
@@ -116,7 +118,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           },
           {
             "n": 4,
@@ -143,7 +146,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           }
         ]
       }
@@ -217,7 +221,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           }
         ]
       }
@@ -272,7 +277,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           },
           {
             "n": 2,
@@ -293,7 +299,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           }
         ]
       }
@@ -399,7 +406,10 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": [
+              "isolated"
+            ]
           },
           {
             "n": 2,
@@ -438,7 +448,10 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": [
+              "distant"
+            ]
           },
           {
             "n": 3,
@@ -455,7 +468,10 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": [
+              "distant"
+            ]
           },
           {
             "n": 4,
@@ -481,7 +497,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           },
           {
             "n": 5,
@@ -498,7 +515,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           },
           {
             "n": 6,
@@ -537,7 +555,8 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": []
           },
           {
             "n": 7,
@@ -558,7 +577,11 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": [
+              "aloof",
+              "distant"
+            ]
           },
           {
             "n": 8,
@@ -601,7 +624,10 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": [
+              "slight"
+            ]
           }
         ]
       }
@@ -703,7 +729,10 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": [
+              "joy"
+            ]
           },
           {
             "n": 2,
@@ -742,7 +771,10 @@
               }
             ],
             "is_phrase": false,
-            "is_idiom": false
+            "is_idiom": false,
+            "synonyms": [
+              "joy"
+            ]
           }
         ]
       }
