@@ -210,12 +210,20 @@ def merge_word_records(records: list[dict]) -> dict:
     if not records:
         raise ValueError("merge_word_records requires at least 1 record")
     if len(records) == 1:
-        # Deep copy so caller can mutate without affecting input
+        # Deep copy so caller can mutate without affecting input.
+        # Backfill required fields on every def so downstream consumers
+        # (schema validator, builder) can assume they always exist.
+        # This handles 3 cases:
+        #   1. Synthetic records from older fixers that predate the field.
+        #   2. Hand-crafted test fixtures that omit the field.
+        #   3. Old parser outputs preserved in audit JSONL.
         result = copy.deepcopy(records[0])
         for pd in result.get("pos_data", []):
             for d in pd.get("definitions", []):
                 if "synonyms" not in d:
                     d["synonyms"] = []
+                if "antonyms" not in d:
+                    d["antonyms"] = []
         # Apply skip flag rules
         _apply_skip_flags(result)
         return result
@@ -311,13 +319,22 @@ def merge_word_records(records: list[dict]) -> dict:
                     d_copy = copy.deepcopy(d)
                     if "synonyms" not in d_copy:
                         d_copy["synonyms"] = []
+                    if "antonyms" not in d_copy:
+                        d_copy["antonyms"] = []
                     seen_defs[key] = d_copy
                     new_defs.append(d_copy)
                 else:
                     d_existing = seen_defs[key]
+                    # Union synonyms (preserves first-appearance order)
                     existing_syns = d_existing.get("synonyms") or []
                     new_syns = d.get("synonyms") or []
                     d_existing["synonyms"] = _dedup_preserve_order(existing_syns + new_syns)
+                    # Union antonyms (same strategy — Oxford often splits the
+                    # same sense across files; opposite headwords vary slightly
+                    # between scrapes and we want all of them.)
+                    existing_ants = d_existing.get("antonyms") or []
+                    new_ants = d.get("antonyms") or []
+                    d_existing["antonyms"] = _dedup_preserve_order(existing_ants + new_ants)
             if new_defs:
                 # Re-number n: 1-based within each pos_data entry
                 for n, d_item in enumerate(new_defs, start=1):
