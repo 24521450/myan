@@ -34,8 +34,17 @@ _Avoid_: Register chip, inline label, marker
 A specific type of Register Tag (`.rt-subject`) that names the academic domain of a sense (biology, law, medicine, etc.). 23 subject labels total — see `data/oxford_labels.json` and `design/index.html` vùng 5.
 _Avoid_: Topic chip, domain tag
 
-A list of synonyms (`definitions[].synonyms`) extracted at the individual sense level from the Oxford corpus. Sourced as dictionary metadata and annotated directly in parentheses inside Anki card examples at the build stage (e.g. `Fish are abundant (plentiful) in the lake.`), mapped to their respective senses and verified via manual overrides in `synonym_example_overrides.jsonl`.
+**Sense Synonym**:
+A list of synonyms (`definitions[].synonyms`) extracted at the individual sense level from the Oxford corpus. Sourced as dictionary metadata and annotated directly in parentheses inside Anki card examples at the build stage (e.g. `Fish are abundant (plentiful) in the lake.`), mapped to their respective senses and verified via manual overrides in `synonym_example_overrides.jsonl`. Rendered on the back card with the `.relation-synonym` class (color `#5DCAA5`).
 _Avoid_: definition synonym, word synonym
+
+**Sense Antonym**:
+A list of antonyms (`definitions[].antonyms`) extracted at the individual sense level from the Oxford corpus. Mirrors the **Sense Synonym** structure but reads Oxford's `xt="opp"` block. Annotates the matching Anki card example with a pink parenthetical (e.g. `The insect's wings are almost transparent (opaque).`) and is rendered with the `.relation-antonym` class (color `#D4537E`). Manual overrides live in `antonym_example_overrides.jsonl`. Only ~3% of Oxford senses carry a non-empty antonym list (652/21687 defs as of 2026-07-02).
+_Avoid_: opposite word, contrast word
+
+**Lexical Relation Metadata**:
+The two raw Anki fields `Synonyms` and `Antonyms` (note-type columns 13 and 14, TXT columns 18 and 19) that drive the `.relation-synonym` / `.relation-antonym` colorization in the back card. Each field is pipe-aligned with the `Example` field — one cell per example chunk, empty when the chunk has no relation. The build stage populates them from `get_relation_specs_for_card` (per-Oxford-example synonyms and antonyms) and the per-chunk override JSONL files. The back template reads them via `{{Synonyms}}` / `{{Antonyms}}` (hidden raw `<div>`s) and the JS wraps the matching parenthetical in the example text with the relation class — supporting both `(word)` and `(= word)` Oxford paren forms. Empty cells render as no-op (no inference, no fake wrap).
+_Avoid_: relation column, synonym field (singular), pair metadata
 
 ### Word-level labels (in the meta-row)
 

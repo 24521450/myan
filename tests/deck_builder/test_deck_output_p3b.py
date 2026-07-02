@@ -19,10 +19,12 @@ from tools._verify_deck_output_p3b import (
 def test_txt_parser_skips_headers_and_preserves_field_count():
     # 6 header lines starting with # + 1 blank line + 2 valid lines
     # Match the current production baseline enforced by the verifier.
-    valid_row = "GUID\tnotetype\tdeck\tword\tpos\tipa\tdefn\tex\tcoll\twf\tuk\tus\tsrc1\tsrc2\tcefr\tidioms\ttags"
+    # 19-col layout (1-indexed): guid, notetype, deck, word, pos, ipa, defn,
+    # ex, coll, wf, uk, us, src1, src2, cefr, idioms, tags, synonyms, antonyms.
+    valid_row = "GUID\tnotetype\tdeck\tword\tpos\tipa\tdefn\tex\tcoll\twf\tuk\tus\tsrc1\tsrc2\tcefr\tidioms\ttags\tsynonyms\tantonyms"
     lines = ["#separator:tab", "#html:true", "#guid:1", "#notetype:2", "#deck:3", "#tags:4", ""]
     lines.extend([valid_row] * 2452)
-    
+
     # Change GUIDs to make them unique
     for i in range(7, len(lines)):
         parts = lines[i].split('\t')
@@ -31,11 +33,11 @@ def test_txt_parser_skips_headers_and_preserves_field_count():
 
     data_rows = verify_txt_structure(lines)
     assert len(data_rows) == 2452
-    assert all(len(row) == 17 for row in data_rows)
+    assert all(len(row) == 19 for row in data_rows)
 
 
 def test_txt_parser_fails_on_duplicate_guid():
-    valid_row = "GUID\tnotetype\tdeck\tword\tpos\tipa\tdefn\tex\tcoll\twf\tuk\tus\tsrc1\tsrc2\tcefr\tidioms\ttags"
+    valid_row = "GUID\tnotetype\tdeck\tword\tpos\tipa\tdefn\tex\tcoll\twf\tuk\tus\tsrc1\tsrc2\tcefr\tidioms\ttags\tsynonyms\tantonyms"
     lines = [valid_row] * 2452
     # Duplicate GUIDs present, so verify_txt_structure should exit 1
     with pytest.raises(SystemExit):
@@ -43,7 +45,7 @@ def test_txt_parser_fails_on_duplicate_guid():
 
 
 def test_txt_parser_fails_on_escaped_pipe():
-    valid_row = "G\tnotetype\tdeck\tword\tpos\tipa\tdefn\\|escaped\tex\tcoll\twf\tuk\tus\tsrc1\tsrc2\tcefr\tidioms\ttags"
+    valid_row = "G\tnotetype\tdeck\tword\tpos\tipa\tdefn\\|escaped\tex\tcoll\twf\tuk\tus\tsrc1\tsrc2\tcefr\tidioms\ttags\tsynonyms\tantonyms"
     lines = [valid_row] * 2452
     # Make GUIDs unique
     for i in range(2452):

@@ -60,8 +60,11 @@ class MergedSense(NamedTuple):
     split_reason: str | None = None  # human-readable: which pair triggered split
     # CEFR rule label (per CONTEXT.md)
     rule_label: str | None = None  # e.g. 'Rule 1+3: surviving senses all have own CEFR (dropped 1 unlisted)'
-    # Synonym specs
-    synonym_specs: list[dict] | None = None
+    # Lexical relation specs — paired sense-level synonyms and antonyms
+    # for each example in this merged sense. Consumed by the relation
+    # annotator in src/deck_builder/synonym_annotator.py.
+    # Each entry: {"text": ex_text, "synonyms": [...], "antonyms": [...]}.
+    relation_specs: list[dict] | None = None
 
 
 class FlatSense(NamedTuple):
@@ -417,14 +420,23 @@ def merge_cluster(
     src_idiom = [bool(d.get("is_idiom")) for d in src_defs]
     cefr_originals = [d.get("cefr") for d in src_defs]
 
-    # Collect all synonym specs from original uncapped examples of the senses in this cluster
-    synonym_specs = []
+    # Collect lexical relation specs from original uncapped examples of the
+    # senses in this cluster. Each example gets the paired (synonyms, antonyms)
+    # of its source def. When the cluster merged multiple defs, we attach one
+    # spec per (example, source def) pair so the annotator can pick the exact
+    # Oxford sense that owns the example.
+    relation_specs = []
     for d in src_defs:
         syns = d.get("synonyms") or []
+        ants = d.get("antonyms") or []
         for ex in d.get("examples") or []:
             ex_text = (ex.get("text") or "").strip()
             if ex_text:
-                synonym_specs.append({"text": ex_text, "synonyms": syns})
+                relation_specs.append({
+                    "text": ex_text,
+                    "synonyms": syns,
+                    "antonyms": ants,
+                })
 
     bm = beta_meta or {}
     return MergedSense(
@@ -447,7 +459,7 @@ def merge_cluster(
         beta_decision=bm.get('beta_decision'),
         review_needed=bm.get('review_needed', False),
         split_reason=bm.get('split_reason'),
-        synonym_specs=synonym_specs,
+        relation_specs=relation_specs,
     )
 
 

@@ -227,8 +227,14 @@ def test_tools_build_notes_cli_dry_run(tmp_path, monkeypatch):
 
     out_jsonl = tmp_path / "anki_notes.jsonl"
     syn_overrides = tmp_path / "synonyms.jsonl"
+    ant_overrides = tmp_path / "antonyms.jsonl"
     syn_overrides.write_text("", encoding="utf-8")
-    argv = ["--dry-run", "--out-jsonl", str(out_jsonl), "--synonym-overrides", str(syn_overrides)]
+    ant_overrides.write_text("", encoding="utf-8")
+    argv = [
+        "--dry-run", "--out-jsonl", str(out_jsonl),
+        "--synonym-overrides", str(syn_overrides),
+        "--antonym-overrides", str(ant_overrides),
+    ]
 
     # Let's monkeypatch sys.argv before calling main()
     monkeypatch.setattr(sys, "argv", ["build_notes.py"] + argv)
@@ -238,7 +244,11 @@ def test_tools_build_notes_cli_dry_run(tmp_path, monkeypatch):
     assert not out_jsonl.exists()
 
     # Non-dry-run: should write files and backups
-    monkeypatch.setattr(sys, "argv", ["build_notes.py", "--out-jsonl", str(out_jsonl), "--synonym-overrides", str(syn_overrides)])
+    monkeypatch.setattr(sys, "argv", [
+        "build_notes.py", "--out-jsonl", str(out_jsonl),
+        "--synonym-overrides", str(syn_overrides),
+        "--antonym-overrides", str(ant_overrides),
+    ])
     code = tools.build_notes.main()
     assert code == 0
     assert out_jsonl.exists()

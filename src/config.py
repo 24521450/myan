@@ -46,6 +46,10 @@ class ProjectPaths:
         return self.root / "data" / "review" / "synonym_example_overrides.jsonl"
 
     @property
+    def antonym_example_overrides(self) -> Path:
+        return self.root / "data" / "review" / "antonym_example_overrides.jsonl"
+
+    @property
     def anki_notes_jsonl(self) -> Path:
         return self.root / "data" / "build" / "anki_notes.jsonl"
 

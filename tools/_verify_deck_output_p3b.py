@@ -92,8 +92,8 @@ def verify_txt_structure(lines: list[str]) -> list[list[str]]:
         data_rows.append(parts)
         
         # Check tab column count
-        if len(parts) != 17:
-            errors.append(f"Row {idx} does not have exactly 17 columns (found {len(parts)})")
+        if len(parts) != 19:
+            errors.append(f"Row {idx} does not have exactly 19 columns (found {len(parts)})")
             
         # Check critical fields non-empty
         # 0: GUID, 1: notetype, 2: deck, 3: word, 4: pos, 6: definition, 14: cefr, 16: tags
@@ -149,7 +149,7 @@ def verify_card_identity(data_rows: list[list[str]], audit_rows: list[dict]):
     txt_keys_word_cefr = []
     txt_keys_word_pos_cefr = []
     txt_keys_word_cefr_list = []
-    
+
     for parts in data_rows:
         word = parts[3].strip().lower()
         pos = parts[4].strip().lower()

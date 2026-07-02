@@ -71,6 +71,8 @@ def main() -> int:
     ap.add_argument('--review-overrides', type=Path, default=canonical_review_path)
     canonical_synonym_overrides = paths_registry.synonym_example_overrides
     ap.add_argument('--synonym-overrides', type=Path, default=canonical_synonym_overrides)
+    canonical_antonym_overrides = paths_registry.antonym_example_overrides
+    ap.add_argument('--antonym-overrides', type=Path, default=canonical_antonym_overrides)
     args = ap.parse_args()
 
     if not args.review_overrides.exists():
@@ -88,7 +90,8 @@ def main() -> int:
         manual_card_fills_path=FILLED_PATH,
         audio_dir=AUDIO_DIR,
         review_overrides_path=args.review_overrides,
-        synonym_example_overrides_path=args.synonym_overrides
+        synonym_example_overrides_path=args.synonym_overrides,
+        antonym_example_overrides_path=args.antonym_overrides,
     )
 
     sys.path.insert(0, str(PROJECT_ROOT))

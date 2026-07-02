@@ -76,6 +76,8 @@
   <div id="raw-tags-back">{{Tags}}</div>
   <div id="raw-word-back">{{Word}}</div>
   <div id="raw-idioms-back">{{Idioms}}</div>
+  <div id="raw-synonyms-back">{{Synonyms}}</div>
+  <div id="raw-antonyms-back">{{Antonyms}}</div>
 </div>
 
 <script>
@@ -218,10 +220,14 @@
   var rawDef  = getRaw('raw-definition-back');
   var rawEx   = getRaw('raw-example-back');
   var rawWord = getRaw('raw-word-back');
+  var rawSyns = getRaw('raw-synonyms-back');
+  var rawAnts = getRaw('raw-antonyms-back');
   var sensesEl = document.getElementById('senses-container');
 
   if (sensesEl && rawDef) {
     var defParts = rawDef.split('|'), exParts = rawEx ? rawEx.split('|') : [];
+    var synParts = rawSyns ? rawSyns.split('|') : [];
+    var antParts = rawAnts ? rawAnts.split('|') : [];
     var defs = [];
     for (var d = 0; d < defParts.length; d++) { if (trim(defParts[d])) defs.push({i:d, t:trim(defParts[d])}); }
 
@@ -230,11 +236,56 @@
     var multi = defs.length > 1;
     var sHtml = '';
 
+    // Render synonym/antonym parentheticals with their colored class.
+    // Wrap each paren whose contents match the per-chunk relation words.
+    // Supports both `(word)` and `(= word)` forms.
+    function renderRelations(exHtml, synWords, antWords) {
+      if (!exHtml) return exHtml;
+      var pairs = [];
+      if (synWords) {
+        for (var s = 0; s < synWords.length; s++) {
+          if (synWords[s]) pairs.push({cls: 'relation-synonym', word: synWords[s]});
+        }
+      }
+      if (antWords) {
+        for (var a = 0; a < antWords.length; a++) {
+          if (antWords[a]) pairs.push({cls: 'relation-antonym', word: antWords[a]});
+        }
+      }
+      if (!pairs.length) return exHtml;
+      // Walk every paren in the chunk; if its contents (after optional
+      // "= " prefix) matches one of the relation words, wrap with the
+      // relation's class. Only exact single-word matches — no inference.
+      return exHtml.replace(/\(([^()]*)\)/g, function(match, inner) {
+        var trimmed = trim(inner);
+        var cleanWord = trimmed.replace(/^=\s*/, '').trim();
+        for (var p = 0; p < pairs.length; p++) {
+          if (cleanWord === pairs[p].word) {
+            return '<span class="' + pairs[p].cls + '">' + match + '</span>';
+          }
+        }
+        return match;
+      });
+    }
+
     for (var di = 0; di < defs.length; di++) {
       var idx = defs[di].i;
       var def = defs[di].t;
       var ex  = (idx < exParts.length) ? trim(exParts[idx]) : '';
       if (ex && wordRe) ex = ex.replace(wordRe, function(m) { return '<span class="word-highlight">' + m + '</span>'; });
+      var synWords = (idx < synParts.length) ? trim(synParts[idx]).split(',') : [];
+      var antWords = (idx < antParts.length) ? trim(antParts[idx]).split(',') : [];
+      for (var sw = 0; sw < synWords.length; sw++) synWords[sw] = trim(synWords[sw]);
+      for (var aw = 0; aw < antWords.length; aw++) antWords[aw] = trim(antWords[aw]);
+      // Only render relations if the per-chunk metadata has entries;
+      // otherwise leave the example untouched (no inference from
+      // sense-level metadata without per-chunk evidence).
+      var hasRelationMeta = false;
+      for (var sw2 = 0; sw2 < synWords.length; sw2++) { if (synWords[sw2]) { hasRelationMeta = true; break; } }
+      if (!hasRelationMeta) {
+        for (var aw2 = 0; aw2 < antWords.length; aw2++) { if (antWords[aw2]) { hasRelationMeta = true; break; } }
+      }
+      if (hasRelationMeta) ex = renderRelations(ex, synWords, antWords);
       var badge = multi ? '<span class="sense-num">' + badges[di] + '</span>' : '';
       sHtml += '<div class="sense-row">'
              + '<div class="sense-def">' + badge + hideVietnameseGloss(parseDef(def)) + '</div>'
