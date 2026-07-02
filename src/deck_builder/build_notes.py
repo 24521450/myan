@@ -17,6 +17,11 @@ from typing import NamedTuple
 from src.deck_builder.simplify_senses import simplify_record, TEXT_JOIN_SEPARATOR, _resolve_def
 from src.scraper.cambridge_audio import resolve_audio_pos
 from src.deck_builder.review_overrides import load_review_overrides, apply_review_overrides
+from src.deck_builder.synonym_annotator import (
+    load_synonym_overrides,
+    annotate_card_examples,
+    get_synonyms_specs_for_card
+)
 
 POS_NORM = {
     'n': 'noun', 'v': 'verb', 'adj': 'adjective', 'adv': 'adverb',
@@ -43,6 +48,7 @@ class BuildNotesPaths(NamedTuple):
     manual_card_fills_path: Path
     audio_dir: Path
     review_overrides_path: Path | None = None
+    synonym_example_overrides_path: Path | None = None
 
 class BuiltCard(NamedTuple):
     """One Anki Note, encoded as 17-col Anki txt row."""
@@ -669,6 +675,8 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
     dup_emit_skip_count = 0
     unclassified_drop_count = 0
 
+    guid_to_synonyms_spec: dict[str, list[dict]] = {}
+
     for key in sorted(existing.keys()):
         word_lower, pos_str, cefr = key
         if key in seen_keys:
@@ -703,6 +711,7 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
                 idioms=old['idioms_orig'],
                 tags=old['tags']
             )
+            guid_to_synonyms_spec[old['guid']] = get_synonyms_specs_for_card(card, senses_index)
             all_cards.append(card)
             emitted_keys.add(key)
             seen_keys.add(key)
@@ -892,6 +901,12 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
             continue
         emitted_keys.add(emit_key)
 
+        specs = []
+        for s in capped:
+            if getattr(s, "synonym_specs", None):
+                specs.extend(s.synonym_specs)
+        guid_to_synonyms_spec[guid] = specs
+
         all_cards.append(BuiltCard(
             guid=guid,
             notetype='English Academic Vocabulary Model',
@@ -915,6 +930,47 @@ def build_notes(paths: BuildNotesPaths) -> BuildNotesResult:
 
     # Apply review overrides by GUID
     all_cards = apply_review_overrides(all_cards, review_overrides)
+
+    # Load and apply synonym annotations
+    synonym_overrides_file = getattr(paths, 'synonym_example_overrides_path', None)
+    synonym_overrides = load_synonym_overrides(synonym_overrides_file)
+    annotated_cards = []
+    all_annotation_errors = []
+
+    for c in all_cards:
+        specs = guid_to_synonyms_spec.get(c.guid)
+        if specs is None:
+            specs = get_synonyms_specs_for_card(c, senses_index)
+
+        annotated_ex, errors = annotate_card_examples(c, specs, synonym_overrides)
+        if errors:
+            all_annotation_errors.extend(errors)
+
+        c_new = c._replace(example=annotated_ex)
+        annotated_cards.append(c_new)
+
+    # Validate unknown GUIDs in synonym overrides (unknown GUIDs fail on all builds)
+    if synonym_overrides_file is not None and synonym_overrides:
+        built_guids = {c.guid for c in all_cards}
+        unknown_guids = set(synonym_overrides.keys()) - built_guids
+        if unknown_guids:
+            all_annotation_errors.append(
+                f"Unknown card GUIDs defined in synonym overrides: {sorted(unknown_guids)}"
+            )
+
+    if all_annotation_errors:
+        import sys
+        print(
+            f"Synonym example annotation has {len(all_annotation_errors)} warnings/errors:\n" +
+            "\n".join(all_annotation_errors),
+            file=sys.stderr
+        )
+        if synonym_overrides_file is not None:
+            raise ValueError(
+                f"Synonym example annotation failed with {len(all_annotation_errors)} errors:\n" +
+                "\n".join(all_annotation_errors)
+            )
+    all_cards = annotated_cards
 
     # Serialize outputs to string
     jsonl_lines = []

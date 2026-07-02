@@ -60,6 +60,8 @@ class MergedSense(NamedTuple):
     split_reason: str | None = None  # human-readable: which pair triggered split
     # CEFR rule label (per CONTEXT.md)
     rule_label: str | None = None  # e.g. 'Rule 1+3: surviving senses all have own CEFR (dropped 1 unlisted)'
+    # Synonym specs
+    synonym_specs: list[dict] | None = None
 
 
 class FlatSense(NamedTuple):
@@ -399,12 +401,30 @@ def merge_cluster(
     src_register = [d.get("register_tags") or [] for d in src_defs]
     src_topics = [d.get("topics") or [] for d in src_defs]
     src_collocations = [d.get("collocations") or {} for d in src_defs]
-    src_examples = [d.get("examples") or [] for d in src_defs]
+    src_examples = []
+    for d in src_defs:
+        syns = d.get("synonyms") or []
+        exs = []
+        for ex in d.get("examples") or []:
+            if isinstance(ex, dict):
+                ex_copy = dict(ex)
+                ex_copy["synonyms"] = syns
+                exs.append(ex_copy)
+        src_examples.append(exs)
     src_countability = [d.get("countability") for d in src_defs]
     src_domain = [d.get("domain") for d in src_defs]
     src_phrase = [bool(d.get("is_phrase")) for d in src_defs]
     src_idiom = [bool(d.get("is_idiom")) for d in src_defs]
     cefr_originals = [d.get("cefr") for d in src_defs]
+
+    # Collect all synonym specs from original uncapped examples of the senses in this cluster
+    synonym_specs = []
+    for d in src_defs:
+        syns = d.get("synonyms") or []
+        for ex in d.get("examples") or []:
+            ex_text = (ex.get("text") or "").strip()
+            if ex_text:
+                synonym_specs.append({"text": ex_text, "synonyms": syns})
 
     bm = beta_meta or {}
     return MergedSense(
@@ -427,6 +447,7 @@ def merge_cluster(
         beta_decision=bm.get('beta_decision'),
         review_needed=bm.get('review_needed', False),
         split_reason=bm.get('split_reason'),
+        synonym_specs=synonym_specs,
     )
 
 
