@@ -137,14 +137,16 @@
     return html + '</span>';
   }
 
-  function hasVietnameseChars(text) {
-    return /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text);
-  }
-
   function hideVietnameseGloss(html) {
+    // Structural rule: every non-empty trailing parenthesis at the end of a
+    // Definition chunk is a Vietnamese gloss. We do NOT try to detect
+    // Vietnamese by diacritic characters — the data contract guarantees the
+    // trailing-paren position is the gloss (either diacritic-rich like
+    // "(đặc điểm)" or ASCII-only like "(gan)").
+    // Parens in the middle of a chunk are not touched.
     return html.replace(/\s*\(([^()]*)\)\s*$/g, function(match, gloss) {
       var clean = trim(gloss);
-      if (!hasVietnameseChars(clean)) return match;
+      if (!clean) return match;
       return ' <button type="button" class="vi-reveal" onclick="this.className+=\' is-open\'; this.disabled=true;"><span class="vi-reveal-label">Hiện nghĩa Việt</span><span class="vi-reveal-text">(' + clean + ')</span></button>';
     });
   }
